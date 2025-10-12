@@ -1,1 +1,12 @@
+target/
+*.class
+*.jar
+*.war
+*.log
+*.iml
+/.idea/
+/.vscode/
+/.DS_Store
 /.gradle/
+/build/
+/out/
