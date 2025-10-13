@@ -1,4 +1,4 @@
-package com.example.minimal;
+package com.example.minimal.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,7 +13,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "invoices")
-public class Invoice {
+public class InvoiceModel {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;

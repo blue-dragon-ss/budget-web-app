@@ -1,4 +1,4 @@
-package com.example.minimal;
+package com.example.minimal.exception;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
