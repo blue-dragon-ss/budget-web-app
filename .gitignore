@@ -1,12 +1,49 @@
-target/
+### Build outputs / caches
+.gradle/
+build/
+bin/
+
+### Eclipse (do not share)
+.classpath
+.project
+.settings/
+
+### IntelliJ (念のため)
+.idea/
+*.iml
+
+### Logs / temp
+logs/
+*.log
+tmp/
+*.tmp
+
+### OS
+.DS_Store
+Thumbs.db
+
+### Editor
+.vscode/
+
+### Env / secrets (必要に応じて)
+.env
+*.env
+# Spring config に機密がある場合は除外し、サンプルを置く運用に
+application.yml
+# application.properties
+
+### Docker volumes / data
+postgres-data/
+
+### Java artifacts (個別生成物)
 *.class
 *.jar
 *.war
-*.log
-*.iml
-/.idea/
-/.vscode/
-/.DS_Store
-/.gradle/
-/build/
-/out/
+*.ear
+
+#shell
+*.ps1
+*.sh
+
+### Gradle wrapper は入れる（重要）
+# なので gradle/wrapper/ は除外しない
