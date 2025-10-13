@@ -1,6 +1,10 @@
-package com.example.minimal;
+package com.example.minimal.controller;
 
 import org.springframework.web.bind.annotation.*;
+
+import com.example.minimal.model.InvoiceModel;
+import com.example.minimal.repository.InvoiceRepository;
+
 import java.util.List;
 
 @RestController
@@ -14,12 +18,12 @@ public class InvoiceController {
   }
 
   @GetMapping
-  public List<Invoice> list() {
+  public List<InvoiceModel> list() {
     return repo.findAll();
   }
 
   @PostMapping
-  public Invoice create(@RequestBody Invoice invoice) {
+  public InvoiceModel create(@RequestBody InvoiceModel invoice) {
     return repo.save(invoice);
   }
 }
