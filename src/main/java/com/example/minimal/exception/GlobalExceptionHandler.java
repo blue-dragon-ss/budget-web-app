@@ -1,40 +1,54 @@
 package com.example.minimal.exception;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.Map;
-
 import org.slf4j.MDC;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.*;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
-
+// 既存に @RestControllerAdvice が付いていればそのまま利用
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private Map<String, Object> body(HttpStatus status, String message, String path) {
-        return Map.of(
-            "timestamp", OffsetDateTime.now(ZoneOffset.UTC).toString(),
-            "status", status.value(),
-            "error", status.getReasonPhrase(),
-            "message", message == null ? "" : message,
-            "path", path,
-            "requestId", MDC.get("rid")
-        );
-    }
+  private record ApiError(
+      OffsetDateTime timestamp,
+      String traceId,
+      String code,
+      String message
+  ) {}
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String,Object>> handleBadRequest(IllegalArgumentException ex, HttpServletRequest req) {
-        var st = HttpStatus.BAD_REQUEST;
-        return new ResponseEntity<>(body(st, ex.getMessage(), req.getRequestURI()), st);
-        }
+  private ResponseEntity<ApiError> build(HttpStatus status, String code, String message) {
+    var body = new ApiError(
+        OffsetDateTime.now(),
+        MDC.get("traceId"),
+        code,
+        message
+    );
+    return ResponseEntity.status(status).body(body);
+  }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String,Object>> handleInternal(Exception ex, HttpServletRequest req) {
-        var st = HttpStatus.INTERNAL_SERVER_ERROR;
-        return new ResponseEntity<>(body(st, ex.getMessage(), req.getRequestURI()), st);
-    }
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
+    var msg = ex.getBindingResult().getAllErrors().stream()
+        .findFirst().map(e -> e.getDefaultMessage()).orElse("Invalid request");
+    return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", msg);
+  }
+
+  @ExceptionHandler(BindException.class)
+  public ResponseEntity<ApiError> handleBind(BindException ex) {
+    var msg = ex.getAllErrors().stream()
+        .findFirst().map(e -> e.getDefaultMessage()).orElse("Invalid request");
+    return build(HttpStatus.BAD_REQUEST, "BIND_ERROR", msg);
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+    return build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiError> handleUnknown(Exception ex) {
+    return build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Unexpected error");
+  }
 }
