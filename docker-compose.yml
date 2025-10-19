@@ -6,7 +6,7 @@ services:
     container_name: postgres16
     restart: always
     environment:
-      POSTGRES_DB: ${PG_DB}
+      POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${PG_USER}
       POSTGRES_PASSWORD: ${PG_PASSWORD}
       TZ: "Asia/Tokyo"

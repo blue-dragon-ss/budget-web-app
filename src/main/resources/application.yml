@@ -1,0 +1,61 @@
+server:
+  # ポートは環境ごとに異なるため共通では未指定
+  forward-headers-strategy: native
+
+spring:
+  application:
+    name: minimal-app
+  profiles:
+    default: local
+
+  datasource:
+    # 値は全て環境変数から注入（デフォルトなし）
+    url:  ${PG_DB}
+    username: ${PG_USER}
+    password: ${PG_PASSWORD}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      validation-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    clean-disabled: true     # 共通は安全側（本番想定）
+    out-of-order: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false            # 共通では無効（開発で有効化）
+    path: /swagger-ui
+
+logging:
+  level:
+    root: INFO
+  pattern:
+    level: "%5p [%X{rid}]"
