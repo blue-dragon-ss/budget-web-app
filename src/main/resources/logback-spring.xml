@@ -1,26 +1,17 @@
 <configuration>
-  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <!-- Composite エンコーダを使用 -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
       <providers>
         <timestamp/>
-        <logLevel/>         <!-- "level" -->
-        <loggerName/>       <!-- "logger" -->
-        <threadName/>       <!-- "thread" -->
-        <message/>          <!-- "message" -->
-        <!-- MDC の traceId をトップレベルに追加（空なら省略） -->
         <pattern>
-          <omitEmptyFields>true</omitEmptyFields>
-          <pattern>{
-            "traceId":"%mdc{traceId}"
-          }</pattern>
+          <pattern>
+            {"level":"%level","logger":"%logger","message":"%message",
+             "traceId":"%X{traceId:-}","idempotencyKey":"%X{idempotencyKey:-}"}
+          </pattern>
         </pattern>
         <stackTrace/>
       </providers>
     </encoder>
   </appender>
-
-  <root level="INFO">
-    <appender-ref ref="CONSOLE"/>
-  </root>
+  <root level="INFO"><appender-ref ref="STDOUT"/></root>
 </configuration>
