@@ -50,6 +50,8 @@ public class CommonHeadersFilter extends OncePerRequestFilter {
         res.setHeader("X-Frame-Options", "DENY");
         res.setHeader("X-Content-Type-Options", "nosniff");
         res.setHeader("Cache-Control", "no-store");
+     // res.setHeader("Content-Security-Policy", "default-src 'self'");
+
 
         // ⑤ HSTS は HTTPS 通信時のみ
         if (req.isSecure()) {
