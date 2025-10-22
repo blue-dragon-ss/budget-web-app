@@ -82,6 +82,15 @@ public class GlobalExceptionHandler {
     return new ErrorBody(now(), traceId(req), "VAL-0001", "リクエストボディの形式が不正です。", null,
         List.of(ex.getClass().getSimpleName()));
   }
+  
+  /** 不正引数例外 → 400 Bad Request */
+  @ExceptionHandler(IllegalArgumentException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorBody handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest req) {
+    return new ErrorBody(now(), traceId(req), "VAL-0002",
+        ex.getMessage() != null ? ex.getMessage() : "不正なリクエストです。",
+        null, List.of(ex.getClass().getSimpleName()));
+  }
 
   /* -------------------- 409: 一意制約など -------------------- */
 
