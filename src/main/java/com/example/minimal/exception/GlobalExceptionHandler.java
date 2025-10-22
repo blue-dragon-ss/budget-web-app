@@ -1,54 +1,104 @@
 package com.example.minimal.exception;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.util.List;
+
 import org.slf4j.MDC;
-import org.springframework.http.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-// 既存に @RestControllerAdvice が付いていればそのまま利用
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  private record ApiError(
-      OffsetDateTime timestamp,
+  /** 仕様：timestamp/traceId/errorCode/message/field/details の固定形 */
+  public record ErrorBody(
+      String timestamp,
       String traceId,
-      String code,
-      String message
+      String errorCode,
+      String message,
+      String field,
+      List<String> details
   ) {}
 
-  private ResponseEntity<ApiError> build(HttpStatus status, String code, String message) {
-    var body = new ApiError(
-        OffsetDateTime.now(),
-        MDC.get("traceId"),
-        code,
-        message
-    );
-    return ResponseEntity.status(status).body(body);
+  private static String now() {
+    return Instant.now().toString();
   }
 
+  /** Step4 のフィルタで request 属性 & MDC に設定済みの traceId を引き出す */
+  private static String traceId(HttpServletRequest req) {
+    Object fromAttr = req.getAttribute("traceId");
+    if (fromAttr instanceof String s && !s.isBlank()) return s;
+    // 念のためMDCもフォールバック
+    String s = MDC.get("traceId");
+    return (s == null || s.isBlank()) ? "" : s;
+  }
+
+  /* -------------------- 400: Validation 系 -------------------- */
+
+  /** JSONボディの Bean Validation（@Valid @RequestBody） */
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
-    var msg = ex.getBindingResult().getAllErrors().stream()
-        .findFirst().map(e -> e.getDefaultMessage()).orElse("Invalid request");
-    return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", msg);
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorBody handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpServletRequest req) {
+    FieldError fe = ex.getBindingResult().getFieldErrors().isEmpty()
+        ? null : ex.getBindingResult().getFieldErrors().get(0);
+    String field = fe == null ? null : fe.getField();
+    String message = fe == null ? "不正な入力です。" : fe.getDefaultMessage(); // 例）「会員名は必須です（VAL-0201）」
+    // 共通仮コード：VAL-0000（各APIでFFRRに差し替え予定）
+    return new ErrorBody(now(), traceId(req), "VAL-0000", message, field, List.of());
   }
 
+  /** クエリ/パスなどのバインドエラー（@Valid な QueryParam など） */
   @ExceptionHandler(BindException.class)
-  public ResponseEntity<ApiError> handleBind(BindException ex) {
-    var msg = ex.getAllErrors().stream()
-        .findFirst().map(e -> e.getDefaultMessage()).orElse("Invalid request");
-    return build(HttpStatus.BAD_REQUEST, "BIND_ERROR", msg);
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorBody handleBind(BindException ex, HttpServletRequest req) {
+    FieldError fe = ex.getBindingResult().getFieldErrors().isEmpty()
+        ? null : ex.getBindingResult().getFieldErrors().get(0);
+    String field = fe == null ? null : fe.getField();
+    String message = fe == null ? "不正な入力です。" : fe.getDefaultMessage();
+    return new ErrorBody(now(), traceId(req), "VAL-0000", message, field, List.of());
   }
 
-  @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
-    return build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+  /** メソッドレベル @Validated の ConstraintViolation（Controllerの引数検証など） */
+  @ExceptionHandler(ConstraintViolationException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorBody handleConstraintViolation(ConstraintViolationException ex, HttpServletRequest req) {
+    String message = ex.getConstraintViolations().stream()
+        .findFirst().map(v -> v.getMessage()).orElse("不正な入力です。");
+    return new ErrorBody(now(), traceId(req), "VAL-0000", message, null, List.of());
   }
+
+  /** JSON 形式不正（パース不能） */
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorBody handleNotReadable(HttpMessageNotReadableException ex, HttpServletRequest req) {
+    return new ErrorBody(now(), traceId(req), "VAL-0001", "リクエストボディの形式が不正です。", null,
+        List.of(ex.getClass().getSimpleName()));
+  }
+
+  /* -------------------- 409: 一意制約など -------------------- */
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  @ResponseStatus(HttpStatus.CONFLICT)
+  public ErrorBody handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest req) {
+    // 仕様のサンプルコード：VAL-0105（Unique違反）
+    return new ErrorBody(now(), traceId(req), "VAL-0105", "一意制約違反です。", "code",
+        List.of(ex.getClass().getSimpleName()));
+  }
+
+  /* -------------------- 500: その他予期しない例外 -------------------- */
 
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ApiError> handleUnknown(Exception ex) {
-    return build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Unexpected error");
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public ErrorBody handleUnknown(Exception ex, HttpServletRequest req) {
+    return new ErrorBody(now(), traceId(req), "SYS-0001", "サーバ内部エラーが発生しました。", null,
+        List.of(ex.getClass().getSimpleName()));
   }
 }
