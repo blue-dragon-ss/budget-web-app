@@ -2,16 +2,22 @@
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
       <providers>
-        <timestamp/>
-        <pattern>
-          <pattern>
-            {"level":"%level","logger":"%logger","message":"%message",
-             "traceId":"%X{traceId:-}","idempotencyKey":"%X{idempotencyKey:-}"}
-          </pattern>
-        </pattern>
-        <stackTrace/>
+        <timestamp>
+          <timeZone>UTC</timeZone>
+        </timestamp>
+        <logLevel/>         <!-- "level" -->
+        <loggerName/>       <!-- "logger" -->
+        <message/>          <!-- "message"（JSONエスケープ済み） -->
+        <mdc>               <!-- 必要な MDC キーだけを出力 -->
+          <includeMdcKeyName>traceId</includeMdcKeyName>
+          <includeMdcKeyName>idempotencyKey</includeMdcKeyName>
+        </mdc>
+        <stackTrace/>       <!-- 例外時のみ -->
       </providers>
     </encoder>
   </appender>
-  <root level="INFO"><appender-ref ref="STDOUT"/></root>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+  </root>
 </configuration>
