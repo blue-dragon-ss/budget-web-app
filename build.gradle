@@ -18,7 +18,7 @@ dependencies {
     // --- 既存 ---
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.postgresql:postgresql'
+    runtimeOnly 'org.postgresql:postgresql'
     implementation "org.flywaydb:flyway-core:11.13.2"
     implementation "org.flywaydb:flyway-database-postgresql:11.13.2"
 
@@ -37,6 +37,7 @@ dependencies {
 
     // --- テスト ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly "org.postgresql:postgresql"
 }
 
 configurations.all {
