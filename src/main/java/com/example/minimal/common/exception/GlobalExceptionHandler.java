@@ -1,4 +1,4 @@
-package com.example.minimal.exception;
+package com.example.minimal.common.exception;
 
 import java.time.Instant;
 import java.util.List;

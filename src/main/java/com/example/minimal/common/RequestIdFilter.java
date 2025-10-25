@@ -1,4 +1,4 @@
-package com.example.minimal.config;
+package com.example.minimal.common;
 
 import java.io.IOException;
 import java.util.UUID;
