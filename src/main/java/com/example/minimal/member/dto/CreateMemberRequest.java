@@ -5,6 +5,7 @@ import lombok.*;
 
 @Getter
 @Setter
+@NoArgsConstructor
 @AllArgsConstructor
 public class CreateMemberRequest {
   @NotBlank(message = "会員コードは必須です。")
