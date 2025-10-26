@@ -128,6 +128,20 @@ public class GlobalExceptionHandler {
 
   /* -------------------- 500: その他予期しない例外 -------------------- */
 
+  @ExceptionHandler(UnexpectedPersistenceException.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public ErrorBody handleUnexpectedPersistence(UnexpectedPersistenceException ex, HttpServletRequest req) {
+//      log.error("Unexpected persistence error. traceId={}", traceId(req), ex);
+      return new ErrorBody(
+          now(),
+          traceId(req),
+          ex.getErrorCode(),                                // "SYS-0001"
+          "予期しないエラーが発生しました。時間を置いて再度お試しください。",
+          ex.getField(),                                     // 通常は null
+          List.of(ex.getClass().getSimpleName())
+      );
+  }
+  
   @ExceptionHandler(Exception.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public ErrorBody handleUnknown(Exception ex, HttpServletRequest req) {

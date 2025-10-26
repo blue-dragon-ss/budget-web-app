@@ -5,10 +5,12 @@ import com.example.minimal.member.dto.MemberResponse;
 import com.example.minimal.common.TraceIdHolder;
 import com.example.minimal.common.exception.DuplicateValueException;
 import com.example.minimal.common.exception.IdempotencyConflictException;
+import com.example.minimal.common.exception.UnexpectedPersistenceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.f4b6a3.ulid.UlidCreator;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,9 +63,9 @@ public class MemberService {
         		      "IDEMP-0001");
           }
           if (ir.getMemberId() != null) {
-            var m = memberRepository.findByIdAndDeletedAtIsNull(ir.getMemberId())
+            var memberEntity = memberRepository.findByIdAndDeletedAtIsNull(ir.getMemberId())
                 .orElseThrow(); // ないはずだが念のため
-            return toResponse(m);
+            return toResponse(memberEntity);
           }
           // 同時実行中などで結果未保存 → 最小実装として409返却（425等に変更可）
           throw new IdempotencyConflictException("X-Idempotency-Key",
@@ -81,28 +83,42 @@ public class MemberService {
     }
 
     // 登録
-    MemberEntity m = new MemberEntity();
-    m.setId(UlidCreator.getUlid().toString());
-    m.setCode(code);
-    m.setName(name);
-    m.setEmail(email);
-    m.setNote(note);
-    m = memberRepository.save(m);
+    MemberEntity memberEntity = new MemberEntity();
+    memberEntity.setId(UlidCreator.getUlid().toString());
+    memberEntity.setCode(code);
+    memberEntity.setName(name);
+    memberEntity.setEmail(email);
+    memberEntity.setNote(note);
+    try {
+    	memberEntity = memberRepository.save(memberEntity);
+    } catch (DataIntegrityViolationException e) {
+      if (isUniqueViolation(e, "uq_members_code_active")) {
+   	    // DB 側で競合（23505）が起きた場合もクライアント向けに統一
+        throw new DuplicateValueException("code", "会員コードは既に使用されています。", "VAL-0105");
+      }
+      // 想定外の永続化エラーは自前の500用例外に正規化して再投げ
+      throw new UnexpectedPersistenceException(
+          "SYS-0001",
+          "永続化処理で予期しないエラーが発生しました。",
+          null,
+          e
+      );
+    }
 
     // Idempotency 結果保存（同一キーの再実行に備える）
     if (idempotencyKey != null && !idempotencyKey.isBlank()) {
       var ir = idemRepo.findByEndpointAndIdempotencyKey(endpoint, idempotencyKey)
           .orElse(null);
       if (ir != null) {
-        ir.setMemberId(m.getId());
+        ir.setMemberId(memberEntity.getId());
         try {
-          ir.setResponseBody(objectMapper.valueToTree(toResponse(m)));
+          ir.setResponseBody(objectMapper.valueToTree(toResponse(memberEntity)));
         } catch (Exception ignore) { /* noop */ }
         idemRepo.save(ir);
       }
     }
 
-    return toResponse(m);
+    return toResponse(memberEntity);
   }
 
   private static String trim(String s) { return s == null ? null : s.trim(); }
@@ -123,6 +139,26 @@ public class MemberService {
       throw new RuntimeException(e);
     }
   }
+  
+  private static boolean isUniqueViolation(Throwable t, String constraintName) {
+	  for (Throwable cur = t; cur != null; cur = cur.getCause()) {
+	    if (cur instanceof ConstraintViolationException cve) {
+	      // 1) 制約名での一致
+	      String name = cve.getConstraintName();
+	      if (name != null && name.equalsIgnoreCase(constraintName)) {
+	        return true;
+	      }
+	      // 2) SQLState（Hibernate が抱える SQLException から取得）
+	      String state = (cve.getSQLException() != null)
+	          ? cve.getSQLException().getSQLState()
+	          : null;
+	      if ("23505".equals(state)) {
+	        return true;
+	      }
+	    }
+	  }
+	  return false;
+	}
 
   private static MemberResponse toResponse(MemberEntity m) {
     MemberResponse res = new MemberResponse();
