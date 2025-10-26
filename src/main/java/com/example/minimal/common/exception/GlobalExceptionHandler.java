@@ -101,9 +101,21 @@ public class GlobalExceptionHandler {
         ex.getErrorCode(),             // 例: "VAL-0105"
         ex.getMessage(),               // メッセージ
         ex.getField(),                 // エラー対象フィールド名（例: "code"）
-        java.util.List.of(ex.getClass().getSimpleName()));
+        List.of(ex.getClass().getSimpleName()));
   }
 
+  @ExceptionHandler(IdempotencyConflictException.class)
+  @ResponseStatus(HttpStatus.CONFLICT) // 冪等性競合のため 409 が適切
+  public ErrorBody handleIdempotencyConflict(IdempotencyConflictException ex, HttpServletRequest req) {
+    return new ErrorBody(
+        now(),
+        traceId(req),
+        ex.getErrorCode(),              // 例: "IDEMP-0001"
+        ex.getMessage(),                // エラーメッセージ
+        ex.getField(),                  // エラー対象（例: "X-Idempotency-Key"）
+        List.of(ex.getClass().getSimpleName()));
+  }
+ 
   /* -------------------- 409: 一意制約など -------------------- */
 
   @ExceptionHandler(DataIntegrityViolationException.class)

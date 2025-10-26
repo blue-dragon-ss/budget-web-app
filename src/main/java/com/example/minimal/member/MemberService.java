@@ -4,8 +4,11 @@ import com.example.minimal.member.dto.CreateMemberRequest;
 import com.example.minimal.member.dto.MemberResponse;
 import com.example.minimal.common.TraceIdHolder;
 import com.example.minimal.common.exception.DuplicateValueException;
+import com.example.minimal.common.exception.IdempotencyConflictException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.f4b6a3.ulid.UlidCreator;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,20 +42,36 @@ public class MemberService {
     final String endpoint = "/api/v1/members/create";
     final String requestHash = sha256(code + "|" + name + "|" + safe(email) + "|" + safe(note));
 
-    // Idempotency: 同一キーで同一リクエストなら前回の結果を返す
+    // Idempotency: 先に行を確保（claim）。重複したら既存結果を再利用/判定
     if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-      var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, idempotencyKey);
-      if (hit.isPresent()) {
-        IdempotentRequest ir = hit.get();
-        if (ir.getRequestHash().equals(requestHash) && ir.getMemberId() != null) {
-          // 直リンク再構成（DB参照してもOK）
-          var m = memberRepository.findByIdAndDeletedAtIsNull(ir.getMemberId())
-              .orElseThrow(); // ないはずだが念のため
-          return toResponse(m);
+      try {
+        IdempotentRequest claim = new IdempotentRequest();
+        claim.setEndpoint(endpoint);
+        claim.setIdempotencyKey(idempotencyKey);
+        claim.setRequestHash(requestHash);
+        idemRepo.saveAndFlush(claim);
+      } catch (DataIntegrityViolationException dup) {
+        // 既に同じ (endpoint,key) が存在 → 再利用 or 誤用（payload不一致）判断
+        var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, idempotencyKey);
+        if (hit.isPresent()) {
+          IdempotentRequest ir = hit.get();
+          if (!ir.getRequestHash().equals(requestHash)) {
+        	  throw new IdempotencyConflictException("X-Idempotency-Key",
+        		      "同一Idempotency-Keyで異なる内容のリクエストが送信されました。",
+        		      "IDEMP-0001");
+          }
+          if (ir.getMemberId() != null) {
+            var m = memberRepository.findByIdAndDeletedAtIsNull(ir.getMemberId())
+                .orElseThrow(); // ないはずだが念のため
+            return toResponse(m);
+          }
+          // 同時実行中などで結果未保存 → 最小実装として409返却（425等に変更可）
+          throw new IdempotencyConflictException("X-Idempotency-Key",
+              "同一Idempotency-Keyの処理が進行中です。しばらくしてから再実行してください。", "BUS-0002");
+        } else {
+          // 防御的（理論上到達しない）
+          throw dup;
         }
-        // キー衝突（異なる入力）→ 業務的には 409/422でもよいが、ここでは400で返す場合も
-        throw new DuplicateValueException("X-Idempotency-Key",
-            "同一Idempotency-Keyで異なる内容のリクエストが送信されました。", "BUS-0001");
       }
     }
 
@@ -70,17 +89,17 @@ public class MemberService {
     m.setNote(note);
     m = memberRepository.save(m);
 
-    // Idempotency 保存（任意）
+    // Idempotency 結果保存（同一キーの再実行に備える）
     if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-      IdempotentRequest ir = new IdempotentRequest();
-      ir.setEndpoint(endpoint);
-      ir.setIdempotencyKey(idempotencyKey);
-      ir.setRequestHash(requestHash);
-      ir.setMemberId(m.getId());
-      try {
-        ir.setResponseBody(objectMapper.valueToTree(toResponse(m)));
-      } catch (Exception ignore) { /* noop */ }
-      idemRepo.save(ir);
+      var ir = idemRepo.findByEndpointAndIdempotencyKey(endpoint, idempotencyKey)
+          .orElse(null);
+      if (ir != null) {
+        ir.setMemberId(m.getId());
+        try {
+          ir.setResponseBody(objectMapper.valueToTree(toResponse(m)));
+        } catch (Exception ignore) { /* noop */ }
+        idemRepo.save(ir);
+      }
     }
 
     return toResponse(m);

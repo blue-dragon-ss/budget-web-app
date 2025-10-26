@@ -40,7 +40,7 @@ public class IdempotentRequest {
   private String memberId;
 
   @Setter
-  @Column(name = "response_body", columnDefinition = "jsonb", nullable = false)
+  @Column(name = "response_body", columnDefinition = "jsonb")
   @JdbcTypeCode(SqlTypes.JSON)
   private JsonNode responseBody;
 
