@@ -58,4 +58,4 @@ logging:
   level:
     root: INFO
   pattern:
-    level: "%5p [%X{rid}]"
+    level: "%5p [%X{traceId}]"

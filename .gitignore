@@ -47,3 +47,5 @@ postgres-data/
 
 ### Gradle wrapper は入れる（重要）
 # なので gradle/wrapper/ は除外しない
+/.apt_generated/
+/.apt_generated_tests/

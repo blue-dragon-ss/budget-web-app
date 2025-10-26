@@ -91,7 +91,31 @@ public class GlobalExceptionHandler {
         ex.getMessage() != null ? ex.getMessage() : "不正なリクエストです。",
         null, List.of(ex.getClass().getSimpleName()));
   }
+  
+  @ExceptionHandler(DuplicateValueException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST) // 仕様次第では 409(CONFLICT) にしてもOK
+  public ErrorBody handleDuplicate(DuplicateValueException ex, HttpServletRequest req) {
+    return new ErrorBody(
+        now(),
+        traceId(req),
+        ex.getErrorCode(),             // 例: "VAL-0105"
+        ex.getMessage(),               // メッセージ
+        ex.getField(),                 // エラー対象フィールド名（例: "code"）
+        List.of(ex.getClass().getSimpleName()));
+  }
 
+  @ExceptionHandler(IdempotencyConflictException.class)
+  @ResponseStatus(HttpStatus.CONFLICT) // 冪等性競合のため 409 が適切
+  public ErrorBody handleIdempotencyConflict(IdempotencyConflictException ex, HttpServletRequest req) {
+    return new ErrorBody(
+        now(),
+        traceId(req),
+        ex.getErrorCode(),              // 例: "IDEMP-0001"
+        ex.getMessage(),                // エラーメッセージ
+        ex.getField(),                  // エラー対象（例: "X-Idempotency-Key"）
+        List.of(ex.getClass().getSimpleName()));
+  }
+ 
   /* -------------------- 409: 一意制約など -------------------- */
 
   @ExceptionHandler(DataIntegrityViolationException.class)
@@ -104,6 +128,20 @@ public class GlobalExceptionHandler {
 
   /* -------------------- 500: その他予期しない例外 -------------------- */
 
+  @ExceptionHandler(UnexpectedPersistenceException.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public ErrorBody handleUnexpectedPersistence(UnexpectedPersistenceException ex, HttpServletRequest req) {
+//      log.error("Unexpected persistence error. traceId={}", traceId(req), ex);
+      return new ErrorBody(
+          now(),
+          traceId(req),
+          ex.getErrorCode(),                                // "SYS-0001"
+          "予期しないエラーが発生しました。時間を置いて再度お試しください。",
+          ex.getField(),                                     // 通常は null
+          List.of(ex.getClass().getSimpleName())
+      );
+  }
+  
   @ExceptionHandler(Exception.class)
   @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
   public ErrorBody handleUnknown(Exception ex, HttpServletRequest req) {
