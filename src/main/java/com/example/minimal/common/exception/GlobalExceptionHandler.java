@@ -91,6 +91,18 @@ public class GlobalExceptionHandler {
         ex.getMessage() != null ? ex.getMessage() : "不正なリクエストです。",
         null, List.of(ex.getClass().getSimpleName()));
   }
+  
+  @ExceptionHandler(DuplicateValueException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST) // 仕様次第では 409(CONFLICT) にしてもOK
+  public ErrorBody handleDuplicate(DuplicateValueException ex, HttpServletRequest req) {
+    return new ErrorBody(
+        now(),
+        traceId(req),
+        ex.getErrorCode(),             // 例: "VAL-0105"
+        ex.getMessage(),               // メッセージ
+        ex.getField(),                 // エラー対象フィールド名（例: "code"）
+        java.util.List.of(ex.getClass().getSimpleName()));
+  }
 
   /* -------------------- 409: 一意制約など -------------------- */
 
