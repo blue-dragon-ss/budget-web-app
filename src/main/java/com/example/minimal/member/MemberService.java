@@ -79,9 +79,9 @@ public class MemberService {
         } else {
           // 防御的（理論上到達しない）
           throw new UnexpectedPersistenceException(
-        	  ErrorCode.COM_SERVER_ERROR,
+        	  null,
         	  ErrorMessage.COM_SERVER_ERROR_MESSAGE,
-			  null,
+        	  ErrorCode.COM_SERVER_ERROR,
 			  dup
 		  );
         }
@@ -109,9 +109,9 @@ public class MemberService {
       }
       // 想定外の永続化エラーは自前の500用例外に正規化して再投げ
       throw new UnexpectedPersistenceException(
-          ErrorCode.COM_SERVER_ERROR,
-          ErrorMessage.COM_SERVER_ERROR_MESSAGE,
           null,
+          ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+          ErrorCode.COM_SERVER_ERROR,
           e
       );
     }
