@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ErrorMessage {    
     public static final String DEAFALT_INVALID_MESSAGE       = "不正な入力です。";
-    public static final String JSON_PARSE_ERROR_MESSAGE     = "指定されたリソースが見つかりません。";
+    public static final String JSON_PARSE_ERROR_MESSAGE     = "リクエストボディの形式が不正です。";
     public static final String DEAFALT_BAD_REQUEST_MESSAGE  = "不正なリクエストです。";
     public static final String DEAFALT_CONFLICT_MESSAGE    = "一意制約違反です。";
     public static final String DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE   = "予期しないエラーが発生しました。時間を置いて再度お試しください。";
