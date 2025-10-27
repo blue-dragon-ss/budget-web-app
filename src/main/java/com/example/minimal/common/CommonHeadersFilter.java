@@ -11,7 +11,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.minimal.common.constants.ApiHeaders;
 import com.example.minimal.common.constants.LogFields;
-import com.example.minimal.common.util.IdGenerator;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

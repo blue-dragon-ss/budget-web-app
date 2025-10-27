@@ -9,9 +9,9 @@ public final class ValidationConstraints {
     public static final int CODE_MIN  = 1;
     public static final int CODE_MAX  = 50;
     public static final int NAME_MIN  = 1;
-    public static final int NAME_MAX  = 100;
-    public static final int EMAIL_MAX = 255;
-    public static final int NOTE_MAX = 100;
+    public static final int NAME_MAX  = 200;
+    public static final int EMAIL_MAX = 320;
+    public static final int NOTE_MAX = 10000;
 
     // IDs
     public static final int ULID_LENGTH = 26;
