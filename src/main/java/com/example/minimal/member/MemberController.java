@@ -1,6 +1,8 @@
 // src/main/java/com/example/minimal/api/member/MemberController.java
 package com.example.minimal.member;
 
+import com.example.minimal.common.constants.ApiHeaders;
+import com.example.minimal.common.constants.ApiPaths;
 import com.example.minimal.member.dto.CreateMemberRequest;
 import com.example.minimal.member.dto.MemberResponse;
 import jakarta.validation.Valid;
@@ -8,7 +10,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/members")
+@RequestMapping(ApiPaths.MEMBERS_BASE)
 public class MemberController {
 
   private final MemberService memberService;
@@ -17,9 +19,9 @@ public class MemberController {
     this.memberService = memberService;
   }
 
-  @PostMapping("/create")
+  @PostMapping(ApiPaths.CREATE)
   public ResponseEntity<MemberResponse> create(
-      @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey,
+      @RequestHeader(value = ApiHeaders.IDEMPOTENCY_KEY, required = false) String idempotencyKey,
       @Valid @RequestBody CreateMemberRequest body) {
 
     MemberResponse res = memberService.create(body, idempotencyKey);

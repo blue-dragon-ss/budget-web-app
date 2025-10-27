@@ -1,28 +1,34 @@
 package com.example.minimal.member.dto;
 
+import com.example.minimal.common.constants.Regexes;
+import com.example.minimal.common.constants.ValidationConstraints;
+import com.example.minimal.common.exception.error.ErrorMessage;
+
 import jakarta.validation.constraints.*;
 import lombok.*;
+import lombok.experimental.FieldNameConstants;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldNameConstants
 public class CreateMemberRequest {
-  @NotBlank(message = "会員コードは必須です。")
-  @Size(min = 1, max = 50, message = "会員コードは1〜50文字で指定してください。")
+  @NotBlank(message = ErrorMessage.VAL_CODE_NOT_BLANK)
+  @Size(min = ValidationConstraints.CODE_MIN, max = ValidationConstraints.CODE_MAX, message = ErrorMessage.VAL_CODE_SIZE)
   private String code;
 
-  @NotBlank(message = "会員名は必須です。")
-  @Size(min = 1, max = 200, message = "会員名は1〜200文字で指定してください。")
+  @NotBlank(message = ErrorMessage.VAL_NAME_NOT_BLANK)
+  @Size(min = ValidationConstraints.NAME_MIN, max = ValidationConstraints.NAME_MAX, message = ErrorMessage.VAL_NAME_SIZE)
   private String name;
 
-  @Size(max = 320, message = "メールアドレスは最大320文字です。")
+  @Size(max = ValidationConstraints.EMAIL_MAX, message = ErrorMessage.VAL_EMAIL_SIZE)
   @Pattern(
-    regexp = "^(|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})$",
-    message = "メールアドレスの形式が正しくありません。"
+    regexp = Regexes.EMAIL,
+    message = ErrorMessage.VAL_EMAIL_PATTERN
   )
   private String email;
 
-  @Size(max = 10000, message = "備考は最大10,000文字です。")
+  @Size(max = ValidationConstraints.NOTE_MAX, message = ErrorMessage.VAL_NOTE_SIZE)
   private String note;
 }
