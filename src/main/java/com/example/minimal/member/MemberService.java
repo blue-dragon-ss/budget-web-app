@@ -2,10 +2,16 @@ package com.example.minimal.member;
 
 import com.example.minimal.member.dto.CreateMemberRequest;
 import com.example.minimal.member.dto.MemberResponse;
+import com.example.minimal.member.dto.CreateMemberRequest.Fields;
 import com.example.minimal.common.TraceIdHolder;
+import com.example.minimal.common.constants.ApiHeaders;
+import com.example.minimal.common.constants.ApiPaths;
+import com.example.minimal.common.constants.SQLState;
 import com.example.minimal.common.exception.DuplicateValueException;
 import com.example.minimal.common.exception.IdempotencyConflictException;
 import com.example.minimal.common.exception.UnexpectedPersistenceException;
+import com.example.minimal.common.exception.error.ErrorCode;
+import com.example.minimal.common.exception.error.ErrorMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.f4b6a3.ulid.UlidCreator;
 
@@ -41,7 +47,7 @@ public class MemberService {
     String email = normalizeEmail(req.getEmail());
     String note = req.getNote();
 
-    final String endpoint = "/api/v1/members/create";
+    final String endpoint = ApiPaths.MEMBERS_BASE + ApiPaths.CREATE;
     final String requestHash = sha256(code + "|" + name + "|" + safe(email) + "|" + safe(note));
 
     // Idempotency: 先に行を確保（claim）。重複したら既存結果を再利用/判定
@@ -58,9 +64,9 @@ public class MemberService {
         if (hit.isPresent()) {
           IdempotentRequest ir = hit.get();
           if (!ir.getRequestHash().equals(requestHash)) {
-        	  throw new IdempotencyConflictException("X-Idempotency-Key",
-        		      "同一Idempotency-Keyで異なる内容のリクエストが送信されました。",
-        		      "IDEMP-0001");
+        	  throw new IdempotencyConflictException(ApiHeaders.IDEMPOTENCY_KEY,
+        			  ErrorMessage.IDE_DEFFERENT_REQUEST_MESSAGE,
+        		      ErrorCode.IDE_VAL_DEFFERENT_REQUEST);
           }
           if (ir.getMemberId() != null) {
             var memberEntity = memberRepository.findByIdAndDeletedAtIsNull(ir.getMemberId())
@@ -68,18 +74,23 @@ public class MemberService {
             return toResponse(memberEntity);
           }
           // 同時実行中などで結果未保存 → 最小実装として409返却（425等に変更可）
-          throw new IdempotencyConflictException("X-Idempotency-Key",
-              "同一Idempotency-Keyの処理が進行中です。しばらくしてから再実行してください。", "BUS-0002");
+          throw new IdempotencyConflictException(ApiHeaders.IDEMPOTENCY_KEY,
+              ErrorMessage.IDE_SAME_KEY_RUNNING_MESSAGE, ErrorCode.IDE_VAL_SAME_KEY_RUNNING);
         } else {
           // 防御的（理論上到達しない）
-          throw dup;
+          throw new UnexpectedPersistenceException(
+        	  ErrorCode.COM_SERVER_ERROR,
+        	  ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+			  null,
+			  dup
+		  );
         }
       }
     }
 
     // 一意制チェック（論理削除を除く）
     if (memberRepository.existsByCodeAndDeletedAtIsNull(code)) {
-      throw new DuplicateValueException("code", "会員コードは既に使用されています。", "VAL-0105");
+      throw new DuplicateValueException(Fields.code, ErrorMessage.MBR_CONFLICT_CODE, ErrorCode.MBR_VAL_CONFLICT_CODE);
     }
 
     // 登録
@@ -94,12 +105,12 @@ public class MemberService {
     } catch (DataIntegrityViolationException e) {
       if (isUniqueViolation(e, "uq_members_code_active")) {
    	    // DB 側で競合（23505）が起きた場合もクライアント向けに統一
-        throw new DuplicateValueException("code", "会員コードは既に使用されています。", "VAL-0105");
+        throw new DuplicateValueException(Fields.code, ErrorMessage.MBR_CONFLICT_CODE, ErrorCode.MBR_VAL_CONFLICT_CODE);
       }
       // 想定外の永続化エラーは自前の500用例外に正規化して再投げ
       throw new UnexpectedPersistenceException(
-          "SYS-0001",
-          "永続化処理で予期しないエラーが発生しました。",
+          ErrorCode.COM_SERVER_ERROR,
+          ErrorMessage.COM_SERVER_ERROR_MESSAGE,
           null,
           e
       );
@@ -152,7 +163,7 @@ public class MemberService {
 	      String state = (cve.getSQLException() != null)
 	          ? cve.getSQLException().getSQLState()
 	          : null;
-	      if ("23505".equals(state)) {
+	      if (SQLState.UNIQUE_VIOLATION.getCode().equals(state)) {
 	        return true;
 	      }
 	    }
