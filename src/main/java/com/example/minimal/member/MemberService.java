@@ -84,8 +84,6 @@ public class MemberService {
             claim.setRequestHash(requestHash);
             return idemRepo.saveAndFlush(claim);
           } catch (DataIntegrityViolationException dup) {
-            status.setRollbackOnly();
-            entityManager.clear();
             throw new DuplicateClaimDetected(dup);
           }
         });
