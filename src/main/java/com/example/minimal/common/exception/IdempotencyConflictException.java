@@ -13,8 +13,11 @@ import lombok.Getter;
  */
 @Getter
 public class IdempotencyConflictException extends RuntimeException {
-
-    private final String field;
+    /**
+	 * シリアルバージョンUID
+	 */
+	private static final long serialVersionUID = 1L;
+	private final String field;
     private final String errorCode;
 
     /**

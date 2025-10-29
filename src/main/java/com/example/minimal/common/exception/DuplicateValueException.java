@@ -4,6 +4,10 @@ import lombok.Getter;
 
 @Getter
 public class DuplicateValueException extends RuntimeException {
+  /**
+	 * シリアルバージョンUID
+	 */
+	private static final long serialVersionUID = 1L;
   private final String field;  
   private final String errorCode; // 例: VAL-0105
 

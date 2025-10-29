@@ -76,7 +76,7 @@ public class MemberService {
     // Idempotency: 先に行を確保（claim）。重複したら既存結果を再利用/判定
     if (normalizedIdempotencyKey != null) {
       try {
-        IdempotentRequest claimed = idempotencyClaimTxTemplate.execute(status -> {
+        IdempotentRequest claimed = idempotencyClaimTxTemplate.execute(_ -> {
           try {
             IdempotentRequest claim = new IdempotentRequest();
             claim.setEndpoint(endpoint);
@@ -97,7 +97,7 @@ public class MemberService {
         }
         registerIdempotencyClaimCleanup(claimed.getId());
       } catch (DuplicateClaimDetected duplicate) {
-        return idempotencyFetchTxTemplate.execute(status -> {
+        return idempotencyFetchTxTemplate.execute(_ -> {
           var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, normalizedIdempotencyKey)
               .orElseThrow(() -> new UnexpectedPersistenceException(
                   null,
@@ -197,7 +197,7 @@ public class MemberService {
       @Override
       public void afterCompletion(int status) {
         if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
-          idempotencyClaimTxTemplate.execute(txStatus -> {
+          idempotencyClaimTxTemplate.execute(_ -> {
             try {
               idemRepo.deleteById(claimId);
             } catch (Exception ignore) {
@@ -211,7 +211,12 @@ public class MemberService {
   }
 
   private static final class DuplicateClaimDetected extends RuntimeException {
-    private DuplicateClaimDetected(Throwable cause) {
+    /**
+	 * シリアルバージョンUID
+	 */
+	private static final long serialVersionUID = 1L;
+
+	private DuplicateClaimDetected(Throwable cause) {
       super(cause);
     }
   }

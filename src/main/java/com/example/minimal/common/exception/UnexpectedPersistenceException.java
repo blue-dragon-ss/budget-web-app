@@ -4,6 +4,10 @@ import lombok.Getter;
 
 @Getter
 public class UnexpectedPersistenceException extends RuntimeException {
+	/**
+	 * シリアルバージョンUID
+	 */
+	private static final long serialVersionUID = 1L;
 	private final String field;       // 特定フィールドがなければ null
     private final String errorCode;   // 例: "SYS-0001"
 
