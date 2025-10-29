@@ -31,7 +31,7 @@ public class MemberService {
   private final MemberRepository memberRepository;
   private final IdempotentRequestRepository idemRepo;
   private final ObjectMapper objectMapper;
-  private final TransactionTemplate idempotencyLookupTxTemplate;
+  private final TransactionTemplate idempotencyClaimTxTemplate;
   private final String UQ_MEMBERS_CODE_ACTIVE = "uq_members_code_active";
 
   public MemberService(MemberRepository memberRepository,
@@ -41,10 +41,10 @@ public class MemberService {
     this.memberRepository = memberRepository;
     this.idemRepo = idemRepo;
     this.objectMapper = objectMapper;
-    TransactionTemplate template = new TransactionTemplate(transactionManager);
-    template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-    template.setReadOnly(true);
-    this.idempotencyLookupTxTemplate = template;
+    TransactionTemplate claimTemplate = new TransactionTemplate(transactionManager);
+    claimTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    claimTemplate.setReadOnly(false);
+    this.idempotencyClaimTxTemplate = claimTemplate;
   }
 
   @Transactional
@@ -60,16 +60,17 @@ public class MemberService {
     final String requestHash = StringUtils.sha256(code + "|" + name + "|" + StringUtils.safe(email) + "|" + StringUtils.safe(note));
 
     // Idempotency: 先に行を確保（claim）。重複したら既存結果を再利用/判定
+    ClaimOutcome claimOutcome = null;
     if (normalizedIdempotencyKey != null) {
-      try {
-        IdempotentRequest claim = new IdempotentRequest();
-        claim.setEndpoint(endpoint);
-        claim.setIdempotencyKey(normalizedIdempotencyKey);
-        claim.setRequestHash(requestHash);
-        idemRepo.saveAndFlush(claim);
-      } catch (DataIntegrityViolationException dup) {
-        // 既に同じ (endpoint,key) が存在 → 再利用 or 誤用（payload不一致）判断
-        return idempotencyLookupTxTemplate.execute(status -> {
+      claimOutcome = idempotencyClaimTxTemplate.execute(status -> {
+        try {
+          IdempotentRequest claim = new IdempotentRequest();
+          claim.setEndpoint(endpoint);
+          claim.setIdempotencyKey(normalizedIdempotencyKey);
+          claim.setRequestHash(requestHash);
+          idemRepo.saveAndFlush(claim);
+          return ClaimOutcome.claimed();
+        } catch (DataIntegrityViolationException dup) {
           var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, normalizedIdempotencyKey);
           if (hit.isEmpty()) {
             throw new UnexpectedPersistenceException(
@@ -88,17 +89,36 @@ public class MemberService {
             );
           }
           if (ir.getMemberId() != null) {
-            var memberEntity = memberRepository.findByIdAndDeletedAtIsNull(ir.getMemberId())
-                .orElseThrow(); // ないはずだが念のため
-            return toResponse(memberEntity);
+            MemberEntity memberEntity = memberRepository
+                .findByIdAndDeletedAtIsNull(ir.getMemberId())
+                .orElseThrow(() -> new UnexpectedPersistenceException(
+                    null,
+                    ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+                    ErrorCode.COM_SERVER_ERROR,
+                    null
+                ));
+            return ClaimOutcome.replayed(toResponse(memberEntity));
           }
-          // 同時実行中などで結果未保存 → 最小実装として409返却（425等に変更可）
-          throw new IdempotencyConflictException(
-              ApiHeaders.IDEMPOTENCY_KEY,
-              ErrorMessage.IDE_SAME_KEY_RUNNING_MESSAGE,
-              ErrorCode.IDE_VAL_SAME_KEY_RUNNING
-          );
-        });
+          return ClaimOutcome.inProgress();
+        }
+      });
+      if (claimOutcome == null) {
+        throw new UnexpectedPersistenceException(
+            null,
+            ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+            ErrorCode.COM_SERVER_ERROR,
+            null
+        );
+      }
+      if (claimOutcome.isReplay()) {
+        return claimOutcome.response();
+      }
+      if (claimOutcome.isInProgress()) {
+        throw new IdempotencyConflictException(
+            ApiHeaders.IDEMPOTENCY_KEY,
+            ErrorMessage.IDE_SAME_KEY_RUNNING_MESSAGE,
+            ErrorCode.IDE_VAL_SAME_KEY_RUNNING
+        );
       }
     }
 
@@ -157,5 +177,45 @@ public class MemberService {
     res.setUpdatedAt(DateTimeFormatter.ISO_INSTANT.format(m.getUpdatedAt()));
     res.setTraceId(TraceIdHolder.get());
     return res;
+  }
+
+  private static final class ClaimOutcome {
+    private enum Status {
+      CLAIMED,
+      REPLAY,
+      IN_PROGRESS
+    }
+
+    private final Status status;
+    private final MemberResponse response;
+
+    private ClaimOutcome(Status status, MemberResponse response) {
+      this.status = status;
+      this.response = response;
+    }
+
+    static ClaimOutcome claimed() {
+      return new ClaimOutcome(Status.CLAIMED, null);
+    }
+
+    static ClaimOutcome replayed(MemberResponse response) {
+      return new ClaimOutcome(Status.REPLAY, response);
+    }
+
+    static ClaimOutcome inProgress() {
+      return new ClaimOutcome(Status.IN_PROGRESS, null);
+    }
+
+    boolean isReplay() {
+      return status == Status.REPLAY;
+    }
+
+    boolean isInProgress() {
+      return status == Status.IN_PROGRESS;
+    }
+
+    MemberResponse response() {
+      return response;
+    }
   }
 }
