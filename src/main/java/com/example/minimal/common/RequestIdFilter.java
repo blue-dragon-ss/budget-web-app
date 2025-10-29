@@ -1,7 +1,6 @@
 package com.example.minimal.common;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
@@ -9,6 +8,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.minimal.common.constants.ApiHeaders;
 import com.example.minimal.common.constants.LogFields;
+import com.example.minimal.common.util.IdGenerator;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,7 +23,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String rid = request.getHeader(ApiHeaders.REQUEST_ID);
         if (rid == null || rid.isBlank()) {
-            rid = UUID.randomUUID().toString();
+            rid = IdGenerator.newId();
         }
         MDC.put(LogFields.RID, rid);
         response.setHeader(ApiHeaders.REQUEST_ID, rid);
