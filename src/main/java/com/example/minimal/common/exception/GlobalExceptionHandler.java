@@ -21,6 +21,12 @@ import jakarta.validation.ConstraintViolationException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  private final ValidationErrorCodeResolver validationErrorCodeResolver;
+
+  public GlobalExceptionHandler(ValidationErrorCodeResolver validationErrorCodeResolver) {
+    this.validationErrorCodeResolver = validationErrorCodeResolver;
+  }
+
   /** 仕様：timestamp/traceId/errorCode/message/field/details の固定形 */
   public record ErrorBody(
       String timestamp,
@@ -55,7 +61,7 @@ public class GlobalExceptionHandler {
     String field = fe == null ? null : fe.getField();
     String message = fe == null ? ErrorMessage.DEAFALT_INVALID_MESSAGE : fe.getDefaultMessage(); // 例）「会員名は必須です（VAL-0201）」
     // 共通仮コード：VAL-0000（各APIでFFRRに差し替え予定）
-    String errorCode = fe == null ? ErrorCode.COM_VAL_DEAFALT_ERROR : fe.getCode();
+    String errorCode = validationErrorCodeResolver.resolve(fe).orElse(ErrorCode.COM_VAL_DEAFALT_ERROR);
     return new ErrorBody(now(), traceId(req), errorCode, message, field, List.of());
   }
 
@@ -67,7 +73,8 @@ public class GlobalExceptionHandler {
         ? null : ex.getBindingResult().getFieldErrors().get(0);
     String field = fe == null ? null : fe.getField();
     String message = fe == null ? ErrorMessage.DEAFALT_INVALID_MESSAGE : fe.getDefaultMessage();
-    return new ErrorBody(now(), traceId(req), ErrorCode.COM_VAL_DEAFALT_ERROR, message, field, List.of());
+    String errorCode = validationErrorCodeResolver.resolve(fe).orElse(ErrorCode.COM_VAL_DEAFALT_ERROR);
+    return new ErrorBody(now(), traceId(req), errorCode, message, field, List.of());
   }
 
   /** メソッドレベル @Validated の ConstraintViolation（Controllerの引数検証など） */
