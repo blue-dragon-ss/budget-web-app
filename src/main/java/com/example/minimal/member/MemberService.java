@@ -16,6 +16,9 @@ import com.example.minimal.member.dto.MemberResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.f4b6a3.ulid.UlidCreator;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +35,11 @@ public class MemberService {
   private final IdempotentRequestRepository idemRepo;
   private final ObjectMapper objectMapper;
   private final TransactionTemplate idempotencyClaimTxTemplate;
+  private final TransactionTemplate idempotencyFetchTxTemplate;
   private final String UQ_MEMBERS_CODE_ACTIVE = "uq_members_code_active";
+
+  @PersistenceContext
+  private EntityManager entityManager;
 
   public MemberService(MemberRepository memberRepository,
                        IdempotentRequestRepository idemRepo,
@@ -45,6 +52,11 @@ public class MemberService {
     claimTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     claimTemplate.setReadOnly(false);
     this.idempotencyClaimTxTemplate = claimTemplate;
+
+    TransactionTemplate fetchTemplate = new TransactionTemplate(transactionManager);
+    fetchTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    fetchTemplate.setReadOnly(true);
+    this.idempotencyFetchTxTemplate = fetchTemplate;
   }
 
   @Transactional
@@ -60,65 +72,63 @@ public class MemberService {
     final String requestHash = StringUtils.sha256(code + "|" + name + "|" + StringUtils.safe(email) + "|" + StringUtils.safe(note));
 
     // Idempotency: 先に行を確保（claim）。重複したら既存結果を再利用/判定
-    ClaimOutcome claimOutcome = null;
     if (normalizedIdempotencyKey != null) {
-      claimOutcome = idempotencyClaimTxTemplate.execute(status -> {
-        try {
-          IdempotentRequest claim = new IdempotentRequest();
-          claim.setEndpoint(endpoint);
-          claim.setIdempotencyKey(normalizedIdempotencyKey);
-          claim.setRequestHash(requestHash);
-          idemRepo.saveAndFlush(claim);
-          return ClaimOutcome.claimed();
-        } catch (DataIntegrityViolationException dup) {
-          var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, normalizedIdempotencyKey);
-          if (hit.isEmpty()) {
-            throw new UnexpectedPersistenceException(
-                null,
-                ErrorMessage.COM_SERVER_ERROR_MESSAGE,
-                ErrorCode.COM_SERVER_ERROR,
-                dup
-            );
+      try {
+        Boolean claimed = idempotencyClaimTxTemplate.execute(status -> {
+          try {
+            IdempotentRequest claim = new IdempotentRequest();
+            claim.setEndpoint(endpoint);
+            claim.setIdempotencyKey(normalizedIdempotencyKey);
+            claim.setRequestHash(requestHash);
+            idemRepo.saveAndFlush(claim);
+            return Boolean.TRUE;
+          } catch (DataIntegrityViolationException dup) {
+            status.setRollbackOnly();
+            entityManager.clear();
+            throw new DuplicateClaimDetected(dup);
           }
-          IdempotentRequest ir = hit.get();
-          if (!ir.getRequestHash().equals(requestHash)) {
+        });
+        if (claimed == null || !claimed) {
+          throw new UnexpectedPersistenceException(
+              null,
+              ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+              ErrorCode.COM_SERVER_ERROR,
+              null
+          );
+        }
+      } catch (DuplicateClaimDetected duplicate) {
+        return idempotencyFetchTxTemplate.execute(status -> {
+          var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, normalizedIdempotencyKey)
+              .orElseThrow(() -> new UnexpectedPersistenceException(
+                  null,
+                  ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+                  ErrorCode.COM_SERVER_ERROR,
+                  duplicate.getCause()
+              ));
+          if (!hit.getRequestHash().equals(requestHash)) {
             throw new IdempotencyConflictException(
                 ApiHeaders.IDEMPOTENCY_KEY,
                 ErrorMessage.IDE_DEFFERENT_REQUEST_MESSAGE,
                 ErrorCode.IDE_VAL_DEFFERENT_REQUEST
             );
           }
-          if (ir.getMemberId() != null) {
-            MemberEntity memberEntity = memberRepository
-                .findByIdAndDeletedAtIsNull(ir.getMemberId())
-                .orElseThrow(() -> new UnexpectedPersistenceException(
-                    null,
-                    ErrorMessage.COM_SERVER_ERROR_MESSAGE,
-                    ErrorCode.COM_SERVER_ERROR,
-                    null
-                ));
-            return ClaimOutcome.replayed(toResponse(memberEntity));
+          if (hit.getMemberId() == null) {
+            throw new IdempotencyConflictException(
+                ApiHeaders.IDEMPOTENCY_KEY,
+                ErrorMessage.IDE_SAME_KEY_RUNNING_MESSAGE,
+                ErrorCode.IDE_VAL_SAME_KEY_RUNNING
+            );
           }
-          return ClaimOutcome.inProgress();
-        }
-      });
-      if (claimOutcome == null) {
-        throw new UnexpectedPersistenceException(
-            null,
-            ErrorMessage.COM_SERVER_ERROR_MESSAGE,
-            ErrorCode.COM_SERVER_ERROR,
-            null
-        );
-      }
-      if (claimOutcome.isReplay()) {
-        return claimOutcome.response();
-      }
-      if (claimOutcome.isInProgress()) {
-        throw new IdempotencyConflictException(
-            ApiHeaders.IDEMPOTENCY_KEY,
-            ErrorMessage.IDE_SAME_KEY_RUNNING_MESSAGE,
-            ErrorCode.IDE_VAL_SAME_KEY_RUNNING
-        );
+          MemberEntity memberEntity = memberRepository
+              .findByIdAndDeletedAtIsNull(hit.getMemberId())
+              .orElseThrow(() -> new UnexpectedPersistenceException(
+                  null,
+                  ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+                  ErrorCode.COM_SERVER_ERROR,
+                  duplicate.getCause()
+              ));
+          return toResponse(memberEntity);
+        });
       }
     }
 
@@ -179,43 +189,9 @@ public class MemberService {
     return res;
   }
 
-  private static final class ClaimOutcome {
-    private enum Status {
-      CLAIMED,
-      REPLAY,
-      IN_PROGRESS
-    }
-
-    private final Status status;
-    private final MemberResponse response;
-
-    private ClaimOutcome(Status status, MemberResponse response) {
-      this.status = status;
-      this.response = response;
-    }
-
-    static ClaimOutcome claimed() {
-      return new ClaimOutcome(Status.CLAIMED, null);
-    }
-
-    static ClaimOutcome replayed(MemberResponse response) {
-      return new ClaimOutcome(Status.REPLAY, response);
-    }
-
-    static ClaimOutcome inProgress() {
-      return new ClaimOutcome(Status.IN_PROGRESS, null);
-    }
-
-    boolean isReplay() {
-      return status == Status.REPLAY;
-    }
-
-    boolean isInProgress() {
-      return status == Status.IN_PROGRESS;
-    }
-
-    MemberResponse response() {
-      return response;
+  private static final class DuplicateClaimDetected extends RuntimeException {
+    private DuplicateClaimDetected(Throwable cause) {
+      super(cause);
     }
   }
 }
