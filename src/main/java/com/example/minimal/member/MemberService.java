@@ -1,8 +1,5 @@
 package com.example.minimal.member;
 
-import com.example.minimal.member.dto.CreateMemberRequest;
-import com.example.minimal.member.dto.MemberResponse;
-import com.example.minimal.member.dto.CreateMemberRequest.Fields;
 import com.example.minimal.common.TraceIdHolder;
 import com.example.minimal.common.constants.ApiHeaders;
 import com.example.minimal.common.constants.ApiPaths;
@@ -13,12 +10,23 @@ import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.common.exception.error.ErrorMessage;
 import com.example.minimal.common.util.SQLUtils;
 import com.example.minimal.common.util.StringUtils;
+import com.example.minimal.member.dto.CreateMemberRequest;
+import com.example.minimal.member.dto.CreateMemberRequest.Fields;
+import com.example.minimal.member.dto.MemberResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.f4b6a3.ulid.UlidCreator;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.format.DateTimeFormatter;
 
@@ -28,14 +36,29 @@ public class MemberService {
   private final MemberRepository memberRepository;
   private final IdempotentRequestRepository idemRepo;
   private final ObjectMapper objectMapper;
+  private final TransactionTemplate idempotencyClaimTxTemplate;
+  private final TransactionTemplate idempotencyFetchTxTemplate;
   private final String UQ_MEMBERS_CODE_ACTIVE = "uq_members_code_active";
+
+  @PersistenceContext
+  private EntityManager entityManager;
 
   public MemberService(MemberRepository memberRepository,
                        IdempotentRequestRepository idemRepo,
-                       ObjectMapper objectMapper) {
+                       ObjectMapper objectMapper,
+                       PlatformTransactionManager transactionManager) {
     this.memberRepository = memberRepository;
     this.idemRepo = idemRepo;
     this.objectMapper = objectMapper;
+    TransactionTemplate claimTemplate = new TransactionTemplate(transactionManager);
+    claimTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    claimTemplate.setReadOnly(false);
+    this.idempotencyClaimTxTemplate = claimTemplate;
+
+    TransactionTemplate fetchTemplate = new TransactionTemplate(transactionManager);
+    fetchTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    fetchTemplate.setReadOnly(true);
+    this.idempotencyFetchTxTemplate = fetchTemplate;
   }
 
   @Transactional
@@ -46,44 +69,66 @@ public class MemberService {
     String email = StringUtils.normalizeEmail(req.getEmail());
     String note = req.getNote();
 
-    final String endpoint = ApiPaths.MEMBERS_BASE + ApiPaths.CREATE;
+    final String endpoint = StringUtils.normalizeEndpoint(ApiPaths.MEMBERS_BASE + ApiPaths.CREATE);
+    final String normalizedIdempotencyKey = StringUtils.normalizeIdempotencyKey(idempotencyKey);
     final String requestHash = StringUtils.sha256(code + "|" + name + "|" + StringUtils.safe(email) + "|" + StringUtils.safe(note));
 
     // Idempotency: 先に行を確保（claim）。重複したら既存結果を再利用/判定
-    if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+    if (normalizedIdempotencyKey != null) {
       try {
-        IdempotentRequest claim = new IdempotentRequest();
-        claim.setEndpoint(endpoint);
-        claim.setIdempotencyKey(idempotencyKey);
-        claim.setRequestHash(requestHash);
-        idemRepo.saveAndFlush(claim);
-      } catch (DataIntegrityViolationException dup) {
-        // 既に同じ (endpoint,key) が存在 → 再利用 or 誤用（payload不一致）判断
-        var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, idempotencyKey);
-        if (hit.isPresent()) {
-          IdempotentRequest ir = hit.get();
-          if (!ir.getRequestHash().equals(requestHash)) {
-        	  throw new IdempotencyConflictException(ApiHeaders.IDEMPOTENCY_KEY,
-        			  ErrorMessage.IDE_DEFFERENT_REQUEST_MESSAGE,
-        		      ErrorCode.IDE_VAL_DEFFERENT_REQUEST);
+        IdempotentRequest claimed = idempotencyClaimTxTemplate.execute(status -> {
+          try {
+            IdempotentRequest claim = new IdempotentRequest();
+            claim.setEndpoint(endpoint);
+            claim.setIdempotencyKey(normalizedIdempotencyKey);
+            claim.setRequestHash(requestHash);
+            return idemRepo.saveAndFlush(claim);
+          } catch (DataIntegrityViolationException dup) {
+            throw new DuplicateClaimDetected(dup);
           }
-          if (ir.getMemberId() != null) {
-            var memberEntity = memberRepository.findByIdAndDeletedAtIsNull(ir.getMemberId())
-                .orElseThrow(); // ないはずだが念のため
-            return toResponse(memberEntity);
-          }
-          // 同時実行中などで結果未保存 → 最小実装として409返却（425等に変更可）
-          throw new IdempotencyConflictException(ApiHeaders.IDEMPOTENCY_KEY,
-              ErrorMessage.IDE_SAME_KEY_RUNNING_MESSAGE, ErrorCode.IDE_VAL_SAME_KEY_RUNNING);
-        } else {
-          // 防御的（理論上到達しない）
+        });
+        if (claimed == null) {
           throw new UnexpectedPersistenceException(
-        	  null,
-        	  ErrorMessage.COM_SERVER_ERROR_MESSAGE,
-        	  ErrorCode.COM_SERVER_ERROR,
-			  dup
-		  );
+              null,
+              ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+              ErrorCode.COM_SERVER_ERROR,
+              null
+          );
         }
+        registerIdempotencyClaimCleanup(claimed.getId());
+      } catch (DuplicateClaimDetected duplicate) {
+        return idempotencyFetchTxTemplate.execute(status -> {
+          var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, normalizedIdempotencyKey)
+              .orElseThrow(() -> new UnexpectedPersistenceException(
+                  null,
+                  ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+                  ErrorCode.COM_SERVER_ERROR,
+                  duplicate.getCause()
+              ));
+          if (!hit.getRequestHash().equals(requestHash)) {
+            throw new IdempotencyConflictException(
+                ApiHeaders.IDEMPOTENCY_KEY,
+                ErrorMessage.IDE_DEFFERENT_REQUEST_MESSAGE,
+                ErrorCode.IDE_VAL_DEFFERENT_REQUEST
+            );
+          }
+          if (hit.getMemberId() == null) {
+            throw new IdempotencyConflictException(
+                ApiHeaders.IDEMPOTENCY_KEY,
+                ErrorMessage.IDE_SAME_KEY_RUNNING_MESSAGE,
+                ErrorCode.IDE_VAL_SAME_KEY_RUNNING
+            );
+          }
+          MemberEntity memberEntity = memberRepository
+              .findByIdAndDeletedAtIsNull(hit.getMemberId())
+              .orElseThrow(() -> new UnexpectedPersistenceException(
+                  null,
+                  ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+                  ErrorCode.COM_SERVER_ERROR,
+                  duplicate.getCause()
+              ));
+          return toResponse(memberEntity);
+        });
       }
     }
 
@@ -116,8 +161,8 @@ public class MemberService {
     }
 
     // Idempotency 結果保存（同一キーの再実行に備える）
-    if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-      var ir = idemRepo.findByEndpointAndIdempotencyKey(endpoint, idempotencyKey)
+    if (normalizedIdempotencyKey != null) {
+      var ir = idemRepo.findByEndpointAndIdempotencyKey(endpoint, normalizedIdempotencyKey)
           .orElse(null);
       if (ir != null) {
         ir.setMemberId(memberEntity.getId());
@@ -142,5 +187,32 @@ public class MemberService {
     res.setUpdatedAt(DateTimeFormatter.ISO_INSTANT.format(m.getUpdatedAt()));
     res.setTraceId(TraceIdHolder.get());
     return res;
+  }
+
+  private void registerIdempotencyClaimCleanup(Long claimId) {
+    if (claimId == null || !TransactionSynchronizationManager.isSynchronizationActive()) {
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+      @Override
+      public void afterCompletion(int status) {
+        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+          idempotencyClaimTxTemplate.execute(txStatus -> {
+            try {
+              idemRepo.deleteById(claimId);
+            } catch (Exception ignore) {
+              // noop: cleanup best-effort
+            }
+            return null;
+          });
+        }
+      }
+    });
+  }
+
+  private static final class DuplicateClaimDetected extends RuntimeException {
+    private DuplicateClaimDetected(Throwable cause) {
+      super(cause);
+    }
   }
 }
