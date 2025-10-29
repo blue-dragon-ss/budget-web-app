@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.format.DateTimeFormatter;
@@ -74,21 +76,20 @@ public class MemberService {
     // Idempotency: 先に行を確保（claim）。重複したら既存結果を再利用/判定
     if (normalizedIdempotencyKey != null) {
       try {
-        Boolean claimed = idempotencyClaimTxTemplate.execute(status -> {
+        IdempotentRequest claimed = idempotencyClaimTxTemplate.execute(status -> {
           try {
             IdempotentRequest claim = new IdempotentRequest();
             claim.setEndpoint(endpoint);
             claim.setIdempotencyKey(normalizedIdempotencyKey);
             claim.setRequestHash(requestHash);
-            idemRepo.saveAndFlush(claim);
-            return Boolean.TRUE;
+            return idemRepo.saveAndFlush(claim);
           } catch (DataIntegrityViolationException dup) {
             status.setRollbackOnly();
             entityManager.clear();
             throw new DuplicateClaimDetected(dup);
           }
         });
-        if (claimed == null || !claimed) {
+        if (claimed == null) {
           throw new UnexpectedPersistenceException(
               null,
               ErrorMessage.COM_SERVER_ERROR_MESSAGE,
@@ -96,6 +97,7 @@ public class MemberService {
               null
           );
         }
+        registerIdempotencyClaimCleanup(claimed.getId());
       } catch (DuplicateClaimDetected duplicate) {
         return idempotencyFetchTxTemplate.execute(status -> {
           var hit = idemRepo.findByEndpointAndIdempotencyKey(endpoint, normalizedIdempotencyKey)
@@ -187,6 +189,27 @@ public class MemberService {
     res.setUpdatedAt(DateTimeFormatter.ISO_INSTANT.format(m.getUpdatedAt()));
     res.setTraceId(TraceIdHolder.get());
     return res;
+  }
+
+  private void registerIdempotencyClaimCleanup(Long claimId) {
+    if (claimId == null || !TransactionSynchronizationManager.isSynchronizationActive()) {
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+      @Override
+      public void afterCompletion(int status) {
+        if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+          idempotencyClaimTxTemplate.execute(txStatus -> {
+            try {
+              idemRepo.deleteById(claimId);
+            } catch (Exception ignore) {
+              // noop: cleanup best-effort
+            }
+            return null;
+          });
+        }
+      }
+    });
   }
 
   private static final class DuplicateClaimDetected extends RuntimeException {
