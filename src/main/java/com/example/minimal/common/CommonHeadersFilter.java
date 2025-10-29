@@ -2,7 +2,6 @@ package com.example.minimal.common;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
@@ -11,6 +10,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.minimal.common.constants.ApiHeaders;
 import com.example.minimal.common.constants.LogFields;
+import com.example.minimal.common.util.IdGenerator;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -28,7 +28,7 @@ public class CommonHeadersFilter extends OncePerRequestFilter {
         // ① Trace ID 決定（来ていれば引継ぎ／なければ生成）
         String traceId = Optional.ofNullable(req.getHeader(ApiHeaders.TRACE_ID))
                 .filter(s -> !s.isBlank())
-                .orElse(UUID.randomUUID().toString());
+                .orElse(IdGenerator.newId());
 
         // ② Idempotency-Key（任意）取得
         String idmpKey = Optional.ofNullable(req.getHeader(ApiHeaders.IDEMPOTENCY_KEY))

@@ -12,6 +12,8 @@ import com.example.minimal.common.exception.IdempotencyConflictException;
 import com.example.minimal.common.exception.UnexpectedPersistenceException;
 import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.common.exception.error.ErrorMessage;
+import com.example.minimal.common.util.SQLUtils;
+import com.example.minimal.common.util.StringUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.f4b6a3.ulid.UlidCreator;
 
@@ -30,6 +32,7 @@ public class MemberService {
   private final MemberRepository memberRepository;
   private final IdempotentRequestRepository idemRepo;
   private final ObjectMapper objectMapper;
+  private final String UQ_MEMBERS_CODE_ACTIVE = "uq_members_code_active";
 
   public MemberService(MemberRepository memberRepository,
                        IdempotentRequestRepository idemRepo,
@@ -42,13 +45,13 @@ public class MemberService {
   @Transactional
   public MemberResponse create(CreateMemberRequest req, String idempotencyKey) {
     // 正規化
-    String code = trim(req.getCode());
-    String name = trim(req.getName());
-    String email = normalizeEmail(req.getEmail());
+    String code = StringUtils.trim(req.getCode());
+    String name = StringUtils.trim(req.getName());
+    String email = StringUtils.normalizeEmail(req.getEmail());
     String note = req.getNote();
 
     final String endpoint = ApiPaths.MEMBERS_BASE + ApiPaths.CREATE;
-    final String requestHash = sha256(code + "|" + name + "|" + safe(email) + "|" + safe(note));
+    final String requestHash = StringUtils.sha256(code + "|" + name + "|" + StringUtils.safe(email) + "|" + StringUtils.safe(note));
 
     // Idempotency: 先に行を確保（claim）。重複したら既存結果を再利用/判定
     if (idempotencyKey != null && !idempotencyKey.isBlank()) {
@@ -103,7 +106,7 @@ public class MemberService {
     try {
     	memberEntity = memberRepository.save(memberEntity);
     } catch (DataIntegrityViolationException e) {
-      if (isUniqueViolation(e, "uq_members_code_active")) {
+      if (SQLUtils.isUniqueViolation(e, UQ_MEMBERS_CODE_ACTIVE)) {
    	    // DB 側で競合（23505）が起きた場合もクライアント向けに統一
         throw new DuplicateValueException(Fields.code, ErrorMessage.MBR_CONFLICT_CODE, ErrorCode.MBR_VAL_CONFLICT_CODE);
       }
@@ -131,45 +134,6 @@ public class MemberService {
 
     return toResponse(memberEntity);
   }
-
-  private static String trim(String s) { return s == null ? null : s.trim(); }
-  private static String normalizeEmail(String s) {
-    if (s == null || s.isBlank()) return null;
-    return s.trim().toLowerCase();
-  }
-  private static String safe(String s) { return s == null ? "" : s; }
-
-  private static String sha256(String s) {
-    try {
-      MessageDigest md = MessageDigest.getInstance("SHA-256");
-      byte[] dig = md.digest(s.getBytes(StandardCharsets.UTF_8));
-      StringBuilder sb = new StringBuilder();
-      for (byte b : dig) sb.append(String.format("%02x", b));
-      return sb.toString();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-  
-  private static boolean isUniqueViolation(Throwable t, String constraintName) {
-	  for (Throwable cur = t; cur != null; cur = cur.getCause()) {
-	    if (cur instanceof ConstraintViolationException cve) {
-	      // 1) 制約名での一致
-	      String name = cve.getConstraintName();
-	      if (name != null && name.equalsIgnoreCase(constraintName)) {
-	        return true;
-	      }
-	      // 2) SQLState（Hibernate が抱える SQLException から取得）
-	      String state = (cve.getSQLException() != null)
-	          ? cve.getSQLException().getSQLState()
-	          : null;
-	      if (SQLState.UNIQUE_VIOLATION.getCode().equals(state)) {
-	        return true;
-	      }
-	    }
-	  }
-	  return false;
-	}
 
   private static MemberResponse toResponse(MemberEntity m) {
     MemberResponse res = new MemberResponse();
