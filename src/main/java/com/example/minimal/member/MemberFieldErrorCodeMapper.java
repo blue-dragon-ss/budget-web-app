@@ -31,56 +31,65 @@ public class MemberFieldErrorCodeMapper implements FieldErrorCodeMapper {
             return Optional.empty();
         }
         String field = error.getField();
-        String constraint = error.getCode();
+        String[] constraintCodes = error.getCodes();
         if (Fields.code.equals(field)) {
-            return resolveCode(constraint);
+            return resolveCode(constraintCodes);
         }
         if (Fields.name.equals(field)) {
-            return resolveName(constraint);
+            return resolveName(constraintCodes);
         }
         if (Fields.email.equals(field)) {
-            return resolveEmail(constraint);
+            return resolveEmail(constraintCodes);
         }
         if (Fields.note.equals(field)) {
-            return resolveNote(constraint);
+            return resolveNote(constraintCodes);
         }
         return Optional.empty();
     }
 
-    private Optional<String> resolveCode(String constraint) {
-        if (ValidationConstraintCodes.NOT_BLANK.equals(constraint)) {
+    private Optional<String> resolveCode(String[] constraints) {
+        if (containsConstraint(constraints, ValidationConstraintCodes.NOT_BLANK)) {
             return Optional.of(ErrorCode.MBR_VAL_REQUIRED_CODE);
         }
-        if (ValidationConstraintCodes.SIZE.equals(constraint)) {
+        if (containsConstraint(constraints, ValidationConstraintCodes.SIZE)) {
             return Optional.of(ErrorCode.MBR_VAL_SIZE_CODE);
         }
         return Optional.empty();
     }
 
-    private Optional<String> resolveName(String constraint) {
-        if (ValidationConstraintCodes.NOT_BLANK.equals(constraint)) {
+    private Optional<String> resolveName(String[] constraints) {
+        if (containsConstraint(constraints, ValidationConstraintCodes.NOT_BLANK)) {
             return Optional.of(ErrorCode.MBR_VAL_REQUIRED_NAME);
         }
-        if (ValidationConstraintCodes.SIZE.equals(constraint)) {
+        if (containsConstraint(constraints, ValidationConstraintCodes.SIZE)) {
             return Optional.of(ErrorCode.MBR_VAL_SIZE_NAME);
         }
         return Optional.empty();
     }
 
-    private Optional<String> resolveEmail(String constraint) {
-        if (ValidationConstraintCodes.SIZE.equals(constraint)) {
+    private Optional<String> resolveEmail(String[] constraints) {
+        if (containsConstraint(constraints, ValidationConstraintCodes.SIZE)) {
             return Optional.of(ErrorCode.MBR_VAL_SIZE_EMAIL);
         }
-        if (ValidationConstraintCodes.PATTERN.equals(constraint)) {
+        if (containsConstraint(constraints, ValidationConstraintCodes.PATTERN)) {
             return Optional.of(ErrorCode.MBR_VAL_FORMAT_EMAIL);
         }
         return Optional.empty();
     }
 
-    private Optional<String> resolveNote(String constraint) {
-        if (ValidationConstraintCodes.SIZE.equals(constraint)) {
+    private Optional<String> resolveNote(String[] constraints) {
+        if (containsConstraint(constraints, ValidationConstraintCodes.SIZE)) {
             return Optional.of(ErrorCode.MBR_VAL_SIZE_NOTE);
         }
         return Optional.empty();
+    }
+
+    private boolean containsConstraint(String[] constraints, String expected) {
+        if (constraints == null || constraints.length == 0) {
+            return false;
+        }
+        return java.util.Arrays.stream(constraints)
+                .filter(java.util.Objects::nonNull)
+                .anyMatch(code -> code.equals(expected) || code.startsWith(expected + "."));
     }
 }
