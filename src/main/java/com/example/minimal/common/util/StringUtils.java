@@ -3,10 +3,6 @@ package com.example.minimal.common.util;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
-import org.hibernate.exception.ConstraintViolationException;
-
-import com.example.minimal.common.constants.SQLState;
-
 public class StringUtils {
 	
 	private static final String SHA_256 = "SHA-256";

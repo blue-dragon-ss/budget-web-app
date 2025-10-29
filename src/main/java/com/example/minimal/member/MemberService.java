@@ -6,7 +6,6 @@ import com.example.minimal.member.dto.CreateMemberRequest.Fields;
 import com.example.minimal.common.TraceIdHolder;
 import com.example.minimal.common.constants.ApiHeaders;
 import com.example.minimal.common.constants.ApiPaths;
-import com.example.minimal.common.constants.SQLState;
 import com.example.minimal.common.exception.DuplicateValueException;
 import com.example.minimal.common.exception.IdempotencyConflictException;
 import com.example.minimal.common.exception.UnexpectedPersistenceException;
@@ -18,12 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.f4b6a3.ulid.UlidCreator;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.format.DateTimeFormatter;
 
 @Service
