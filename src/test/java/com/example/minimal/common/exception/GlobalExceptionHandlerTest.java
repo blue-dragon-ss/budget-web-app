@@ -68,7 +68,7 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
-	void handleBind_shouldReturnErrorBodyUsingRequestTraceId() throws Exception {
+        void handleBindはリクエストのtraceIdをErrorBodyに含める() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setAttribute(LogFields.TRACE_ID, "trace-from-request");
 		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
@@ -150,7 +150,7 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
-	void handleConstraintViolation_shouldReturnErrorBodyUsingMdcTraceId() {
+        void handleConstraintViolationはMDCのtraceIdを用いてErrorBodyを返す() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
 
@@ -171,7 +171,7 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
-	void handleIllegalArgument_shouldReturnErrorBodyWithoutTraceId() {
+        void handleIllegalArgumentはtraceIdなしでErrorBodyを返す() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 
 		IllegalArgumentException exception = new IllegalArgumentException("bad request");
@@ -187,7 +187,7 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
-	void handleUnexpectedPersistence_shouldFallbackToMdcTraceIdWhenRequestTraceIdBlank() {
+        void handleUnexpectedPersistenceはリクエストtraceIdが空のときMDCのtraceIdを利用する() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setAttribute(LogFields.TRACE_ID, " ");
 		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");

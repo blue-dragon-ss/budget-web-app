@@ -95,7 +95,7 @@ class CommonHeadersFilterTest {
 	}
 
 	@Test
-	void whenTraceIdHeaderIsBlank_generatesNewTraceIdAndSkipsEmptyIdempotencyKey() throws Exception {
+        void トレースIDヘッダが空の場合は新しいIDを生成して空のIdempotencyKeyを無視する() throws Exception {
 		try (MockedStatic<IdGenerator> mockedIdGenerator = Mockito.mockStatic(IdGenerator.class)) {
 			String generatedTraceId = "generated-trace-id";
 			mockedIdGenerator.when(IdGenerator::newId).thenReturn(generatedTraceId);
