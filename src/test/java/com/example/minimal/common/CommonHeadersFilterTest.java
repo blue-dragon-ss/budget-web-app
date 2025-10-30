@@ -73,8 +73,13 @@ class CommonHeadersFilterTest {
 		request.setSecure(true);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 
-		try (MockedStatic<IdGenerator> mocked = Mockito.mockStatic(IdGenerator.class)) {
-			mocked.when(IdGenerator::newId).thenReturn("should-not-be-used");
+                try (MockedStatic<IdGenerator> mocked = Mockito.mockStatic(IdGenerator.class)) {
+                        AtomicBoolean newIdCalled = new AtomicBoolean(false);
+                        mocked.when(IdGenerator::newId)
+                                        .thenAnswer(invocation -> {
+                                                newIdCalled.set(true);
+                                                return "should-not-be-used";
+                                        });
 
 			FilterChain chain = (req, _) -> {
 				assertThat(MDC.get(LogFields.TRACE_ID)).isEqualTo("incoming-trace");
@@ -82,10 +87,10 @@ class CommonHeadersFilterTest {
 				assertThat(req.getAttribute(LogFields.IDEMPOTENCY_KEY)).isEqualTo("idem-key");
 			};
 
-			filter.doFilter(request, response, chain);
+                        filter.doFilter(request, response, chain);
 
-			mocked.verifyNoInteractions();
-		}
+                        assertThat(newIdCalled).isFalse();
+                }
 
 		assertThat(response.getHeader(ApiHeaders.TRACE_ID)).isEqualTo("incoming-trace");
 		assertThat(response.getHeader(ApiHeaders.STRICT_TRANSPORT_SECURITY))
