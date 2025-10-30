@@ -55,8 +55,8 @@ class ValidationErrorCodeResolverTest {
 		verify(mapper, never()).resolve(fieldError);
 	}
 
-	@Test
-	void resolveShouldReturnEmptyAndKeepMappersEmptyWhenConstructedWithNull() throws Exception {
+        @Test
+        void nullで生成された場合はマッパーが空のままで結果も空を返す() throws Exception {
 		ValidationErrorCodeResolver resolver = new ValidationErrorCodeResolver(null);
 
 		Field mappersField = ValidationErrorCodeResolver.class.getDeclaredField("mappers");

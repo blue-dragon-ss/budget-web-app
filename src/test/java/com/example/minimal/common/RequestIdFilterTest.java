@@ -72,8 +72,8 @@ class RequestIdFilterTest {
 		assertThat(MDC.get(LogFields.RID)).isNull();
 	}
 
-	@Test
-	void shouldGenerateNewRequestIdWhenHeaderIsBlank() throws Exception {
+        @Test
+        void 空のリクエストIDヘッダの場合は新しいIDを生成して設定する() throws Exception {
 		HttpServletRequest request = mock(HttpServletRequest.class);
 		HttpServletResponse response = mock(HttpServletResponse.class);
 		FilterChain filterChain = mock(FilterChain.class);
