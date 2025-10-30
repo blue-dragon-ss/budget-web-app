@@ -43,6 +43,7 @@ dependencies {
 
     // --- テスト ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.mockito:mockito-inline'
     testRuntimeOnly "org.postgresql:postgresql"
 }
 
