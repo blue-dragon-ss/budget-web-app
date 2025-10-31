@@ -73,18 +73,15 @@ class CommonHeadersFilterTest {
 		request.setSecure(true);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 
+		FilterChain chain = (req, _) -> {
+			assertThat(MDC.get(LogFields.TRACE_ID)).isEqualTo("incoming-trace");
+			assertThat(MDC.get(LogFields.IDEMPOTENCY_KEY)).isEqualTo("idem-key");
+			assertThat(req.getAttribute(LogFields.IDEMPOTENCY_KEY)).isEqualTo("idem-key");
+		};
+
 		try (MockedStatic<IdGenerator> mocked = Mockito.mockStatic(IdGenerator.class)) {
-			mocked.when(IdGenerator::newId).thenReturn("should-not-be-used");
-
-			FilterChain chain = (req, _) -> {
-				assertThat(MDC.get(LogFields.TRACE_ID)).isEqualTo("incoming-trace");
-				assertThat(MDC.get(LogFields.IDEMPOTENCY_KEY)).isEqualTo("idem-key");
-				assertThat(req.getAttribute(LogFields.IDEMPOTENCY_KEY)).isEqualTo("idem-key");
-			};
-
+			mocked.when(IdGenerator::newId).thenThrow(new AssertionError("CommonHeaderFilter から呼ぶな"));
 			filter.doFilter(request, response, chain);
-
-			mocked.verifyNoInteractions();
 		}
 
 		assertThat(response.getHeader(ApiHeaders.TRACE_ID)).isEqualTo("incoming-trace");
@@ -95,7 +92,7 @@ class CommonHeadersFilterTest {
 	}
 
 	@Test
-        void トレースIDヘッダが空の場合は新しいIDを生成して空のIdempotencyKeyを無視する() throws Exception {
+	void トレースIDヘッダが空の場合は新しいIDを生成して空のIdempotencyKeyを無視する() throws Exception {
 		try (MockedStatic<IdGenerator> mockedIdGenerator = Mockito.mockStatic(IdGenerator.class)) {
 			String generatedTraceId = "generated-trace-id";
 			mockedIdGenerator.when(IdGenerator::newId).thenReturn(generatedTraceId);
