@@ -9,32 +9,37 @@ import org.junit.jupiter.api.Test;
 
 class SQLUtilsTest {
 
-    @Test
-    void 制約名が一致する場合は一意制約違反と判定する() {
-        ConstraintViolationException violation = new ConstraintViolationException("msg", null, "uk_members_code");
-        RuntimeException wrapper = new RuntimeException(violation);
+	@Test
+	void コンストラクタ() {
+		new SQLUtils();
+	}
 
-        boolean actual = SQLUtils.isUniqueViolation(wrapper, "UK_MEMBERS_CODE");
+	@Test
+	void 制約名が一致する場合は一意制約違反と判定する() {
+		ConstraintViolationException violation = new ConstraintViolationException("msg", null, "uk_members_code");
+		RuntimeException wrapper = new RuntimeException(violation);
 
-        assertThat(actual).isTrue();
-    }
+		boolean actual = SQLUtils.isUniqueViolation(wrapper, "UK_MEMBERS_CODE");
 
-    @Test
-    void SQLStateが一致する場合は一意制約違反と判定する() {
-        SQLException sqlException = new SQLException("msg", "23505");
-        ConstraintViolationException violation = new ConstraintViolationException("msg", sqlException, null);
+		assertThat(actual).isTrue();
+	}
 
-        boolean actual = SQLUtils.isUniqueViolation(violation, "other");
+	@Test
+	void SQLStateが一致する場合は一意制約違反と判定する() {
+		SQLException sqlException = new SQLException("msg", "23505");
+		ConstraintViolationException violation = new ConstraintViolationException("msg", sqlException, null);
 
-        assertThat(actual).isTrue();
-    }
+		boolean actual = SQLUtils.isUniqueViolation(violation, "other");
 
-    @Test
-    void 該当しない場合は一意制約違反ではない() {
-        ConstraintViolationException violation = new ConstraintViolationException("msg", null, "uk_members_code");
+		assertThat(actual).isTrue();
+	}
 
-        boolean actual = SQLUtils.isUniqueViolation(violation, "uk_other");
+	@Test
+	void 該当しない場合は一意制約違反ではない() {
+		ConstraintViolationException violation = new ConstraintViolationException("msg", null, "uk_members_code");
 
-        assertThat(actual).isFalse();
-    }
+		boolean actual = SQLUtils.isUniqueViolation(violation, "uk_other");
+
+		assertThat(actual).isFalse();
+	}
 }
