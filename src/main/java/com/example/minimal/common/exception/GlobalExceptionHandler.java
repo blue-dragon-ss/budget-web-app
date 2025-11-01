@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.example.minimal.common.constants.LogFields;
+import com.example.minimal.common.exception.error.CryptoOperationException;
 import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.common.exception.error.ErrorMessage;
 
@@ -155,7 +156,19 @@ public class GlobalExceptionHandler {
 					ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null, List.of());
 		}
 		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // "SYS-0001"
-				ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, ex.getField(), // 通常は null
+				ex.getMessage(), ex.getField(), // 通常は null
+				List.of(ex.getClass().getSimpleName()));
+	}
+
+	@ExceptionHandler(CryptoOperationException.class)
+	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+	public ErrorBody handleCrypto(CryptoOperationException ex, HttpServletRequest req) {
+		if (ex == null) {
+			return new ErrorBody(now(), traceId(req), ErrorCode.COM_SERVER_ERROR,
+					ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null, List.of());
+		}
+		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // 例: COM_SHA256_ALGORITHM_NOT_FOUND
+				ex.getMessage(), ex.getField(), // 通常 null
 				List.of(ex.getClass().getSimpleName()));
 	}
 

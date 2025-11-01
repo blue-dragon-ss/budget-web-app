@@ -24,6 +24,7 @@ import org.springframework.validation.FieldError;
 
 import com.example.minimal.common.constants.LogFields;
 import com.example.minimal.common.exception.GlobalExceptionHandler.ErrorBody;
+import com.example.minimal.common.exception.error.CryptoOperationException;
 import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.common.exception.error.ErrorMessage;
 
@@ -206,6 +207,59 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
+	void handleConstraintViolationはMDCのtraceIdを用いてErrorBodyを返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		@SuppressWarnings("unchecked")
+		ConstraintViolation<Object> violation = mock(ConstraintViolation.class);
+		when(violation.getMessage()).thenReturn("violation-message");
+
+		ConstraintViolationException exception = new ConstraintViolationException(Set.of(violation));
+
+		ErrorBody body = handler.handleConstraintViolation(exception, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo("violation-message");
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(ConstraintViolationException.class.getSimpleName());
+	}
+
+	@Test
+	void handleConstraintViolationのConstraintViolationExceptionがnull() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		ErrorBody body = handler.handleConstraintViolation(null, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
+	}
+
+	@Test
+	void handleConstraintViolationのgetConstraintViolationExceptionsがnull() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		ConstraintViolationException exception = new ConstraintViolationException(null);
+
+		ErrorBody body = handler.handleConstraintViolation(exception, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
+	}
+
+	@Test
 	void handleNotReadableは固定のメッセージと詳細を返す() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setAttribute(LogFields.TRACE_ID, "trace-002");
@@ -233,6 +287,53 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.message()).isEqualTo(ErrorMessage.JSON_PARSE_ERROR_MESSAGE);
 		assertThat(body.field()).isNull();
 		assertThat(body.details()).isEmpty();
+	}
+
+	@Test
+	void handleIllegalArgumentはtraceIdなしでErrorBodyを返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+
+		IllegalArgumentException exception = new IllegalArgumentException("bad request");
+
+		ErrorBody body = handler.handleIllegalArgument(exception, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEmpty();
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
+		assertThat(body.message()).isEqualTo("bad request");
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(IllegalArgumentException.class.getSimpleName());
+	}
+
+	@Test
+	void handleIllegalArgumentはエラーメッセージが設定されていなければデフォルトメッセージを返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+
+		IllegalArgumentException exception = new IllegalArgumentException("");
+
+		ErrorBody body = handler.handleIllegalArgument(exception, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEmpty();
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(IllegalArgumentException.class.getSimpleName());
+	}
+
+	@Test
+	void handleIllegalArgumentはIllegalArgumentExcpetionがnullならデフォルトメッセージを出してクラス名を出さない() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+
+		ErrorBody body = handler.handleIllegalArgument(null, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEmpty();
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
+		;
 	}
 
 	@Test
@@ -352,106 +453,6 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
-	void handleConstraintViolationはMDCのtraceIdを用いてErrorBodyを返す() {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
-
-		@SuppressWarnings("unchecked")
-		ConstraintViolation<Object> violation = mock(ConstraintViolation.class);
-		when(violation.getMessage()).thenReturn("violation-message");
-
-		ConstraintViolationException exception = new ConstraintViolationException(Set.of(violation));
-
-		ErrorBody body = handler.handleConstraintViolation(exception, request);
-
-		assertThat(body.timestamp()).isNotBlank();
-		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
-		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
-		assertThat(body.message()).isEqualTo("violation-message");
-		assertThat(body.field()).isNull();
-		assertThat(body.details()).containsExactly(ConstraintViolationException.class.getSimpleName());
-	}
-
-	@Test
-	void handleConstraintViolationのConstraintViolationExceptionがnull() {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
-
-		ErrorBody body = handler.handleConstraintViolation(null, request);
-
-		assertThat(body.timestamp()).isNotBlank();
-		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
-		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
-		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
-		assertThat(body.field()).isNull();
-		assertThat(body.details()).isEmpty();
-	}
-
-	@Test
-	void handleConstraintViolationのgetConstraintViolationExceptionsがnull() {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
-
-		ConstraintViolationException exception = new ConstraintViolationException(null);
-
-		ErrorBody body = handler.handleConstraintViolation(exception, request);
-
-		assertThat(body.timestamp()).isNotBlank();
-		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
-		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
-		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
-		assertThat(body.field()).isNull();
-		assertThat(body.details()).isEmpty();
-	}
-
-	@Test
-	void handleIllegalArgumentはtraceIdなしでErrorBodyを返す() {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-
-		IllegalArgumentException exception = new IllegalArgumentException("bad request");
-
-		ErrorBody body = handler.handleIllegalArgument(exception, request);
-
-		assertThat(body.timestamp()).isNotBlank();
-		assertThat(body.traceId()).isEmpty();
-		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
-		assertThat(body.message()).isEqualTo("bad request");
-		assertThat(body.field()).isNull();
-		assertThat(body.details()).containsExactly(IllegalArgumentException.class.getSimpleName());
-	}
-
-	@Test
-	void handleIllegalArgumentはエラーメッセージが設定されていなければデフォルトメッセージを返す() {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-
-		IllegalArgumentException exception = new IllegalArgumentException("");
-
-		ErrorBody body = handler.handleIllegalArgument(exception, request);
-
-		assertThat(body.timestamp()).isNotBlank();
-		assertThat(body.traceId()).isEmpty();
-		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
-		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE);
-		assertThat(body.field()).isNull();
-		assertThat(body.details()).containsExactly(IllegalArgumentException.class.getSimpleName());
-	}
-
-	@Test
-	void handleIllegalArgumentはIllegalArgumentExcpetionがnullならデフォルトメッセージを出してクラス名を出さない() {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-
-		ErrorBody body = handler.handleIllegalArgument(null, request);
-
-		assertThat(body.timestamp()).isNotBlank();
-		assertThat(body.traceId()).isEmpty();
-		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
-		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE);
-		assertThat(body.field()).isNull();
-		assertThat(body.details()).isEmpty();
-		;
-	}
-
-	@Test
 	void handleUnexpectedPersistenceはリクエストtraceIdが空のときMDCのtraceIdを利用する() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setAttribute(LogFields.TRACE_ID, " ");
@@ -465,7 +466,7 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.timestamp()).isNotBlank();
 		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
 		assertThat(body.errorCode()).isEqualTo("SYS-9999");
-		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE);
+		assertThat(body.message()).isEqualTo("message");
 		assertThat(body.field()).isEqualTo("field");
 		assertThat(body.details()).containsExactly(UnexpectedPersistenceException.class.getSimpleName());
 	}
@@ -484,7 +485,7 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.timestamp()).isNotBlank();
 		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
 		assertThat(body.errorCode()).isNull();
-		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE);
+		assertThat(body.message()).isNull();
 		assertThat(body.field()).isNull();
 		assertThat(body.details()).containsExactly(UnexpectedPersistenceException.class.getSimpleName());
 	}
@@ -499,6 +500,55 @@ class GlobalExceptionHandlerTest {
 
 		assertThat(body.timestamp()).isNotBlank();
 		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_SERVER_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
+	}
+
+	@Test
+	void handleCryptoはtraceIdと共通メッセージを返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-crypto");
+
+		CryptoOperationException ex = new CryptoOperationException(null, ErrorMessage.SHA256_ALGORITHM_NOT_FOUND,
+				ErrorCode.COM_SHA256_ALGORITHM_NOT_FOUND,
+				new java.security.NoSuchAlgorithmException("SHA-256 not found"));
+
+		ErrorBody body = handler.handleCrypto(ex, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-crypto");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_SHA256_ALGORITHM_NOT_FOUND);
+		assertThat(body.message()).isEqualTo(ErrorMessage.SHA256_ALGORITHM_NOT_FOUND);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(CryptoOperationException.class.getSimpleName());
+	}
+
+	@Test
+	void handleCryptoは空のエラー情報をそのまま返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-crypto");
+
+		CryptoOperationException ex = new CryptoOperationException(null, null, null,
+				new java.security.NoSuchAlgorithmException("SHA-256 not found"));
+
+		ErrorBody body = handler.handleCrypto(ex, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-crypto");
+		assertThat(body.errorCode()).isNull();
+		assertThat(body.message()).isNull();
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(CryptoOperationException.class.getSimpleName());
+	}
+
+	@Test
+	void handleCryptoはCryptoOperationExceptionがnullのデフォルトメッセージ等を返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-crypto");
+
+		ErrorBody body = handler.handleCrypto(null, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-crypto");
 		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_SERVER_ERROR);
 		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE);
 		assertThat(body.field()).isNull();

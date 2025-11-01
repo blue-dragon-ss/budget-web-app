@@ -20,9 +20,10 @@ public final class ErrorCode {
 	public static final String IDE_VAL_DEFFERENT_REQUEST = "IDEMP-0001";
 	public static final String IDE_VAL_SAME_KEY_RUNNING = "IDEMP-0002";
 
-	// COMMON (example)
+	// COMMON
 	public static final String COM_VAL_DEAFALT_ERROR = "VAL-0000";
 	public static final String COM_JSON_PARSE_ERROR = "VAL-0001";
 	public static final String COM_BAD_REQUEST_ERROR = "VAL-0001";
 	public static final String COM_SERVER_ERROR = "SYS-0001";
+	public static final String COM_SHA256_ALGORITHM_NOT_FOUND = "SYS-0002";
 }

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ErrorMessage {
+	// Common
 	public static final String DEAFALT_INVALID_MESSAGE = "不正な入力です。";
 	public static final String JSON_PARSE_ERROR_MESSAGE = "リクエストボディの形式が不正です。";
 	public static final String DEAFALT_BAD_REQUEST_MESSAGE = "不正なリクエストです。";
@@ -31,6 +32,9 @@ public final class ErrorMessage {
 	public static final String IDE_DEAFALT_ERROR_MESSAGE = "Idempotency-Keyの処理中にエラーが発生しました。";
 	public static final String IDE_DEFFERENT_REQUEST_MESSAGE = "同一Idempotency-Keyで異なる内容のリクエストが送信されました。";
 	public static final String IDE_SAME_KEY_RUNNING_MESSAGE = "同一Idempotency-Keyの処理が進行中です。しばらくしてから再実行してください。";
+
+	// sha256
+	public static final String SHA256_ALGORITHM_NOT_FOUND = "SHA-256のアルゴリズムが見つかりません。";
 
 	// Server
 	public static final String COM_SERVER_ERROR_MESSAGE = "内部エラーが発生しました。";
