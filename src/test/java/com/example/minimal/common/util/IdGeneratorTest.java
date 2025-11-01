@@ -8,10 +8,15 @@ import org.junit.jupiter.api.Test;
 
 class IdGeneratorTest {
 
-    @Test
-    void UUID形式の文字列が生成される() {
-        String actual = IdGenerator.newId();
+	@Test
+	void コンストラクタ() {
+		new IdGenerator();
+	}
 
-        assertThatCode(() -> UUID.fromString(actual)).doesNotThrowAnyException();
-    }
+	@Test
+	void UUID形式の文字列が生成される() {
+		String actual = IdGenerator.newId();
+
+		assertThatCode(() -> UUID.fromString(actual)).doesNotThrowAnyException();
+	}
 }
