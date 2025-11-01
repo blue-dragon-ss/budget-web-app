@@ -34,9 +34,6 @@ import jakarta.validation.ConstraintViolationException;
 class GlobalExceptionHandlerTest {
 
 	@Mock
-	private ValidationErrorCodeResolver validationErrorCodeResolver;
-
-	@Mock
 	private ValidationErrorCodeResolver resolver;
 
 	@InjectMocks
@@ -64,11 +61,70 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.errorCode()).isEqualTo("VAL-0201");
 		assertThat(body.message()).isEqualTo("名前が不正です");
 		assertThat(body.field()).isEqualTo("name");
+		assertThat(body.details())
+				.containsExactly(org.springframework.web.bind.MethodArgumentNotValidException.class.getSimpleName());
+	}
+
+	@Test
+	void handleMethodArgumentNotValidでフィールドエラーがnull() {
+		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "member");
+		FieldError fieldError = null;
+		bindingResult.addError(fieldError);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-001");
+
+		ErrorBody body = handler.handleMethodArgumentNotValid(
+				new org.springframework.web.bind.MethodArgumentNotValidException(null, bindingResult), request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-001");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details())
+				.containsExactly(org.springframework.web.bind.MethodArgumentNotValidException.class.getSimpleName());
+	}
+
+	@Test
+	void handleMethodArgumentNotValidでMethodArgumentNotValidExceptionがnull() {
+		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "member");
+		FieldError fieldError = null;
+		bindingResult.addError(fieldError);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-001");
+
+		ErrorBody body = handler.handleMethodArgumentNotValid(null, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-001");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
 		assertThat(body.details()).isEmpty();
 	}
 
 	@Test
-        void handleBindはリクエストのtraceIdをErrorBodyに含める() throws Exception {
+	void handleMethodArgumentNotValidでHttpServletRequestがnull() {
+		BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "member");
+		FieldError fieldError = new FieldError("member", "name", "名前が不正です");
+		bindingResult.addError(fieldError);
+		when(resolver.resolve(fieldError)).thenReturn(Optional.of("VAL-0201"));
+		MockHttpServletRequest request = null;
+
+		ErrorBody body = handler.handleMethodArgumentNotValid(
+				new org.springframework.web.bind.MethodArgumentNotValidException(null, bindingResult), request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEmpty();
+		assertThat(body.errorCode()).isEqualTo("VAL-0201");
+		assertThat(body.message()).isEqualTo("名前が不正です");
+		assertThat(body.field()).isEqualTo("name");
+		assertThat(body.details())
+				.containsExactly(org.springframework.web.bind.MethodArgumentNotValidException.class.getSimpleName());
+	}
+
+	@Test
+	void handleBindはリクエストのtraceIdをErrorBodyに含める() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setAttribute(LogFields.TRACE_ID, "trace-from-request");
 		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
@@ -77,7 +133,7 @@ class GlobalExceptionHandlerTest {
 		FieldError fieldError = new FieldError("target", "fieldName", "default-message");
 		bindException.addError(fieldError);
 
-		when(validationErrorCodeResolver.resolve(any(FieldError.class))).thenReturn(Optional.of("VAL-9999"));
+		when(resolver.resolve(any(FieldError.class))).thenReturn(Optional.of("VAL-9999"));
 
 		ErrorBody body = handler.handleBind(bindException, request);
 
@@ -86,11 +142,71 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.errorCode()).isEqualTo("VAL-9999");
 		assertThat(body.message()).isEqualTo("default-message");
 		assertThat(body.field()).isEqualTo("fieldName");
+		assertThat(body.details()).containsExactly(BindException.class.getSimpleName());
+	}
+
+	@Test
+	void handleBindでリクエストのBindExceptionがnull() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "");
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		BindException bindException = new BindException(new Object(), "target");
+		FieldError fieldError = new FieldError("target", "fieldName", "default-message");
+		bindException.addError(fieldError);
+
+		ErrorBody body = handler.handleBind(null, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
 		assertThat(body.details()).isEmpty();
 	}
 
 	@Test
-	void handleHttpMessageNotReadableは固定のメッセージと詳細を返す() {
+	void handleBindでフィールドエラーがnull() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "");
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		BindException bindException = new BindException(new Object(), "target");
+		FieldError fieldError = null;
+		bindException.addError(fieldError);
+
+		ErrorBody body = handler.handleBind(bindException, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(BindException.class.getSimpleName());
+	}
+
+	@Test
+	void handleBindでTraceIDがブランク() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "");
+		MDC.put(LogFields.TRACE_ID, "");
+
+		BindException bindException = new BindException(new Object(), "target");
+		FieldError fieldError = null;
+		bindException.addError(fieldError);
+
+		ErrorBody body = handler.handleBind(bindException, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(BindException.class.getSimpleName());
+	}
+
+	@Test
+	void handleNotReadableは固定のメッセージと詳細を返す() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setAttribute(LogFields.TRACE_ID, "trace-002");
 		HttpMessageNotReadableException ex = new HttpMessageNotReadableException("invalid",
@@ -103,6 +219,20 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.message()).isEqualTo(ErrorMessage.JSON_PARSE_ERROR_MESSAGE);
 		assertThat(body.field()).isNull();
 		assertThat(body.details()).containsExactly(HttpMessageNotReadableException.class.getSimpleName());
+	}
+
+	@Test
+	void handleNotReadableのHttpMessageNotReadableExceptionがnull() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-002");
+
+		ErrorBody body = handler.handleNotReadable(null, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-002");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_JSON_PARSE_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.JSON_PARSE_ERROR_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
 	}
 
 	@Test
@@ -121,6 +251,35 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
+	void handleDuplicateは例外の空の情報もそのまま返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-003");
+		DuplicateValueException ex = new DuplicateValueException(null, null, null);
+
+		ErrorBody body = handler.handleDuplicate(ex, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-003");
+		assertThat(body.errorCode()).isNull();
+		assertThat(body.message()).isNull();
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(DuplicateValueException.class.getSimpleName());
+	}
+
+	@Test
+	void handleDuplicateはDuplicateValueExceptionがnullのときデフォルトメッセージ等を返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-003");
+
+		ErrorBody body = handler.handleDuplicate(null, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-003");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
+	}
+
+	@Test
 	void handleIdempotencyConflictはエラー詳細を保持する() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setAttribute(LogFields.TRACE_ID, "trace-004");
@@ -133,6 +292,35 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.message()).isEqualTo("競合");
 		assertThat(body.field()).isEqualTo("X-Idempotency-Key");
 		assertThat(body.details()).containsExactly(IdempotencyConflictException.class.getSimpleName());
+	}
+
+	@Test
+	void handleIdempotencyConflictは空のエラー詳細をそのまま保持する() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-004");
+		IdempotencyConflictException ex = new IdempotencyConflictException(null, null, null);
+
+		ErrorBody body = handler.handleIdempotencyConflict(ex, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-004");
+		assertThat(body.errorCode()).isNull();
+		assertThat(body.message()).isNull();
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(IdempotencyConflictException.class.getSimpleName());
+	}
+
+	@Test
+	void handleIdempotencyConflictはIdempotencyConflictExceptionがnullの時デフォルトメッセージ等を返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, "trace-004");
+
+		ErrorBody body = handler.handleIdempotencyConflict(null, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-004");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.IDE_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.IDE_DEAFALT_ERROR_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
 	}
 
 	@Test
@@ -150,7 +338,21 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
-        void handleConstraintViolationはMDCのtraceIdを用いてErrorBodyを返す() {
+	void handleUnknownはExceptionがNullの時クラス名を出さない() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MDC.put(LogFields.TRACE_ID, "trace-mdc");
+
+		ErrorBody body = handler.handleUnknown(null, request);
+
+		assertThat(body.traceId()).isEqualTo("trace-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_SERVER_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
+	}
+
+	@Test
+	void handleConstraintViolationはMDCのtraceIdを用いてErrorBodyを返す() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
 
@@ -167,11 +369,43 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
 		assertThat(body.message()).isEqualTo("violation-message");
 		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(ConstraintViolationException.class.getSimpleName());
+	}
+
+	@Test
+	void handleConstraintViolationのConstraintViolationExceptionがnull() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		ErrorBody body = handler.handleConstraintViolation(null, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
 		assertThat(body.details()).isEmpty();
 	}
 
 	@Test
-        void handleIllegalArgumentはtraceIdなしでErrorBodyを返す() {
+	void handleConstraintViolationのgetConstraintViolationExceptionsがnull() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		ConstraintViolationException exception = new ConstraintViolationException(null);
+
+		ErrorBody body = handler.handleConstraintViolation(exception, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_VAL_DEAFALT_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
+	}
+
+	@Test
+	void handleIllegalArgumentはtraceIdなしでErrorBodyを返す() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 
 		IllegalArgumentException exception = new IllegalArgumentException("bad request");
@@ -180,14 +414,45 @@ class GlobalExceptionHandlerTest {
 
 		assertThat(body.timestamp()).isNotBlank();
 		assertThat(body.traceId()).isEmpty();
-		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_MESSAGE);
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
 		assertThat(body.message()).isEqualTo("bad request");
 		assertThat(body.field()).isNull();
 		assertThat(body.details()).containsExactly(IllegalArgumentException.class.getSimpleName());
 	}
 
 	@Test
-        void handleUnexpectedPersistenceはリクエストtraceIdが空のときMDCのtraceIdを利用する() {
+	void handleIllegalArgumentはエラーメッセージが設定されていなければデフォルトメッセージを返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+
+		IllegalArgumentException exception = new IllegalArgumentException("");
+
+		ErrorBody body = handler.handleIllegalArgument(exception, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEmpty();
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(IllegalArgumentException.class.getSimpleName());
+	}
+
+	@Test
+	void handleIllegalArgumentはIllegalArgumentExcpetionがnullならデフォルトメッセージを出してクラス名を出さない() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+
+		ErrorBody body = handler.handleIllegalArgument(null, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEmpty();
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
+		;
+	}
+
+	@Test
+	void handleUnexpectedPersistenceはリクエストtraceIdが空のときMDCのtraceIdを利用する() {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setAttribute(LogFields.TRACE_ID, " ");
 		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
@@ -203,5 +468,40 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE);
 		assertThat(body.field()).isEqualTo("field");
 		assertThat(body.details()).containsExactly(UnexpectedPersistenceException.class.getSimpleName());
+	}
+
+	@Test
+	void handleUnexpectedPersistenceは空のエラー情報をそのまま返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, " ");
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		UnexpectedPersistenceException exception = new UnexpectedPersistenceException(null, null, null,
+				new RuntimeException("cause"));
+
+		ErrorBody body = handler.handleUnexpectedPersistence(exception, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isNull();
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(UnexpectedPersistenceException.class.getSimpleName());
+	}
+
+	@Test
+	void handleUnexpectedPersistenceはUnexpectedPersistenceExceptionがnullの時デフォルトメッセージ等を返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setAttribute(LogFields.TRACE_ID, " ");
+		MDC.put(LogFields.TRACE_ID, "trace-from-mdc");
+
+		ErrorBody body = handler.handleUnexpectedPersistence(null, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEqualTo("trace-from-mdc");
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_SERVER_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).isEmpty();
 	}
 }
