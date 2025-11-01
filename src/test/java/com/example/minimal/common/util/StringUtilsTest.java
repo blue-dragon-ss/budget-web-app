@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
-import com.example.minimal.common.exception.UnexpectedPersistenceException;
+import com.example.minimal.common.exception.error.CryptoOperationException;
 import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.common.exception.error.ErrorMessage;
 
@@ -110,10 +110,15 @@ class StringUtilsTest {
 			"/API/v1/Endpoint/", // 大文字と末尾スラッシュあり
 			"/api/v1/endpoint/", // 末尾スラッシュあり
 			" /api/v1/endpoint/ ", // 先頭と末尾に空白と末尾スラッシュあり
-			"/" // ルートパスのみ
 	})
 	void normalizeEndpointは末尾スラッシュを取り除き小文字化する(String input) {
 		assertThat(StringUtils.normalizeEndpoint(input)).isEqualTo(input.trim().toLowerCase().replaceAll("/+$", ""));
+	}
+
+	@Test
+	void normalizeEndpointはルートパスのみの場合nullを返す() {
+		assertThat(StringUtils.normalizeEndpoint("/")).isEqualTo("/");
+		assertThat(StringUtils.normalizeEndpoint(" / ")).isEqualTo("/");
 	}
 
 	@ParameterizedTest
@@ -152,12 +157,12 @@ class StringUtilsTest {
 	}
 
 	@Test
-	void sha256はMessageDigestのgetInstanceで例外が投げられたとき街灯のエラーメッセージ等を返す() {
+	void sha256はMessageDigestのgetInstanceで例外が投げられたとき該当のエラーメッセージ等を返す() {
 		try (MockedStatic<MessageDigest> mocked = mockStatic(MessageDigest.class)) {
 			mocked.when(() -> MessageDigest.getInstance("SHA-256"))
 					.thenThrow(new java.security.NoSuchAlgorithmException("SHA-256 not found"));
 
-			UnexpectedPersistenceException ex = assertThrows(UnexpectedPersistenceException.class, () -> {
+			CryptoOperationException ex = assertThrows(CryptoOperationException.class, () -> {
 				StringUtils.sha256("test"); // テスト対象呼び出し
 			});
 
