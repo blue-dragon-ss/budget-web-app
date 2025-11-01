@@ -113,8 +113,11 @@ public class GlobalExceptionHandler {
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_BAD_REQUEST_ERROR,
 					ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE, null, List.of());
 		}
-		return new ErrorBody(now(), traceId(req), ErrorCode.COM_BAD_REQUEST_ERROR,
-				ex.getMessage().isEmpty() ? ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE : ex.getMessage(), null,
+		String message = ex.getMessage();
+		if (message == null || message.isEmpty()) {
+			message = ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE;
+		}
+		return new ErrorBody(now(), traceId(req), ErrorCode.COM_BAD_REQUEST_ERROR, message, null,
 				List.of(ex.getClass().getSimpleName()));
 	}
 

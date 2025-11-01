@@ -333,7 +333,21 @@ class GlobalExceptionHandlerTest {
 		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE);
 		assertThat(body.field()).isNull();
 		assertThat(body.details()).isEmpty();
-		;
+	}
+
+	@Test
+	void handleIllegalArgumentはエラーメッセージがnullならデフォルトメッセージを返す() {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		String message = null;
+		IllegalArgumentException exception = new IllegalArgumentException(message);
+		ErrorBody body = handler.handleIllegalArgument(exception, request);
+
+		assertThat(body.timestamp()).isNotBlank();
+		assertThat(body.traceId()).isEmpty();
+		assertThat(body.errorCode()).isEqualTo(ErrorCode.COM_BAD_REQUEST_ERROR);
+		assertThat(body.message()).isEqualTo(ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE);
+		assertThat(body.field()).isNull();
+		assertThat(body.details()).containsExactly(IllegalArgumentException.class.getSimpleName());
 	}
 
 	@Test
