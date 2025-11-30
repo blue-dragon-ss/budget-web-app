@@ -17,6 +17,12 @@ springdoc:
     tagsSorter: alpha
     tryItOutEnabled: true
 
+datasource:
+  # 値は全て環境変数から注入（デフォルトなし）
+  url:  jdbc:postgresql://localhost:5432/billing?sslmode=disable
+  username: syukatsusysss
+  password: letsstartdb7392
+
 logging:
   level:
     root: INFO

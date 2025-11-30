@@ -29,6 +29,7 @@ Thumbs.db
 .env
 *.env
 # Spring config に機密がある場合は除外し、サンプルを置く運用に
+# application-local.yml
 application-https.yml
 # application.properties
 
