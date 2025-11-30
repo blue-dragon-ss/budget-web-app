@@ -29,8 +29,9 @@ Thumbs.db
 .env
 *.env
 # Spring config に機密がある場合は除外し、サンプルを置く運用に
-application-https.yml
-# application.properties
+/backend/src/main/resources/application-local.yml
+/backend/src/main/resources/application-https.yml
+# /backend/src/main/resources/application.properties
 
 ### Docker volumes / data
 postgres-data/
@@ -47,5 +48,5 @@ postgres-data/
 
 ### Gradle wrapper は入れる（重要）
 # なので gradle/wrapper/ は除外しない
-/.apt_generated/
-/.apt_generated_tests/
+/backend/.apt_generated/
+/backend/.apt_generated_tests/

@@ -10,4 +10,4 @@ Get-Content ../.env | ForEach-Object {
 
 # ③ Gradleを実行（プロジェクトディレクトリを..に明示）
 #   ※ -p .. もしくは --project-dir .. を必ず付ける
-..\gradlew -p .. bootRun --args="--spring.profiles.active=local"
+..\backend\gradlew -p ..\backend bootRun --args="--spring.profiles.active=local"
