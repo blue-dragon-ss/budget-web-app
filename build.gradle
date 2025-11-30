@@ -2,6 +2,7 @@ plugins {
     id 'org.springframework.boot' version '3.5.6'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'java'
+    id 'jacoco'
 }
 
 java {
@@ -15,39 +16,88 @@ repositories {
 }
 
 dependencies {
-    // --- 既存 ---
+    // --- 本体 ---
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     runtimeOnly 'org.postgresql:postgresql'
-    implementation "org.flywaydb:flyway-core:11.13.2"
-    implementation "org.flywaydb:flyway-database-postgresql:11.13.2"
+    compileOnly "org.flywaydb:flyway-core:11.7.2"
+    implementation "org.flywaydb:flyway-database-postgresql:11.7.2"
 
-    // --- Step0 で追加する依存関係 ---
-    // 入力バリデーション（@Valid, @NotNull など）
+    // Lombok
+    implementation "org.projectlombok:lombok"
+    annotationProcessor "org.projectlombok:lombok"
+
+    // Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-    // Actuator (healthcheck, metrics)
+    // Actuator
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    // Swagger / OpenAPI UI
+    // OpenAPI (Swagger)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12'
 
-    // 構造化JSONログ（Logstash Encoder）
+    // 構造化JSONログ
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 
-    // --- テスト ---
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // ULID
+    implementation "com.github.f4b6a3:ulid-creator:5.2.2"
+
+    // --- Test/BOM---
+    testImplementation platform("org.mockito:mockito-bom:5.14.1")
+    testImplementation 'org.springframework.boot:spring-boot-starter-test' // mockito-core を内包
+    // 必要なら明示追加:
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+
+    // 将来のJDK対策: Byte Buddy Agent をテストに付与
+    testImplementation 'net.bytebuddy:byte-buddy-agent:1.17.7'
+
     testRuntimeOnly "org.postgresql:postgresql"
 }
 
 configurations.all {
     resolutionStrategy {
-        // 既存の Flyway バージョン固定
-        force "org.flywaydb:flyway-core:11.13.2"
-        force "org.flywaydb:flyway-database-postgresql:11.13.2"
+        // Flyway を固定
+        force "org.flywaydb:flyway-core:11.7.2"
+        force "org.flywaydb:flyway-database-postgresql:11.7.2"
+
+        // 念のため mockito-inline を解決対象から外す（どこかから混入しても使わない）
+        eachDependency { details ->
+            if (details.requested.group == 'org.mockito' && details.requested.name == 'mockito-inline') {
+                details.useTarget("org.mockito:mockito-core:${details.requested.version ?: '5.14.1'}")
+            }
+        }
     }
 }
 
-tasks.named('test') {
+tasks.withType(Test).configureEach {
     useJUnitPlatform()
+
+    // 依存から agent JAR を探索して -javaagent を常に付与
+    doFirst {
+        // ★ Groovy DSL では get() は不要。resolve() で File の Set を得ます。
+        def runtimeFiles = configurations.testRuntimeClasspath.resolve()
+
+        def agent = runtimeFiles.find { f ->
+            f.name.startsWith('byte-buddy-agent') && f.name.endsWith('.jar')
+        }
+        if (agent) {
+            jvmArgs("-javaagent:${agent.absolutePath}")
+        } else {
+            logger.lifecycle("byte-buddy-agent JAR が見つかりませんでした。依存に 'net.bytebuddy:byte-buddy-agent' が入っているか確認してください。")
+        }
+    }
+}
+
+// Jacoco を使う場合のレポート
+jacoco {
+    toolVersion = "0.8.14"
+}
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
 }
