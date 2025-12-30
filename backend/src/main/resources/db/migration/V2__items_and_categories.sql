@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS items (
   created_by           VARCHAR(26),
   updated_at           TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_by           VARCHAR(26),
-  deleted_at           TIMESTAMPTZ
+  deleted_at           TIMESTAMPTZ,
   
   -- 形式チェック/金額チェック
   CONSTRAINT ck_items_billing_ym_format CHECK (billing_ym ~ '^[0-9]{6}$'),

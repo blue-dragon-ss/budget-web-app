@@ -42,6 +42,7 @@ public class ItemService {
 	}
 
 	private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
+	private static final DateTimeFormatter YEAR_MONTH_DB_FORMATTER = DateTimeFormatter.ofPattern("yyyyMM");
 
 	@Transactional
 	public P203Response importCsv(P203Request request) {
@@ -89,7 +90,7 @@ public class ItemService {
 	private ItemEntity toEntity(CsvRow row, YearMonth yearMonth) {
 		ItemEntity entity = new ItemEntity();
 		entity.setPublicId(UlidCreator.getUlid().toString());
-		entity.setBillingYm(yearMonth.toString());
+		entity.setBillingYm(yearMonth.format(YEAR_MONTH_DB_FORMATTER));
 		entity.setUsageDate(row.usageDate());
 		entity.setTitle(row.title());
 		entity.setPayer(row.payer());

@@ -22,11 +22,10 @@ import lombok.experimental.FieldNameConstants;
 @FieldNameConstants
 public class P203Request {
 	@NotBlank(message = ErrorMessage.VAL_YEAR_MONTH_NOT_BLANK)
-	@Size(min = ValidationConstraints.YEAR_MONTH_LENGTH, max = ValidationConstraints.YEAR_MONTH_LENGTH, message = ErrorMessage.VAL_CODE_SIZE)
+	@Size(min = ValidationConstraints.YEAR_MONTH_LENGTH, max = ValidationConstraints.YEAR_MONTH_LENGTH, message = ErrorMessage.VAL_YEAR_MONTH_SIZE)
 	@Pattern(regexp = Regexes.YEAR_MONTH, message = ErrorMessage.VAL_YEAR_MONTH_PATTERN)
 	private String yearMonth;
 
-	@NotBlank(message = ErrorMessage.VAL_ITEM_FILE_NOT_BLANK)
-	@Pattern(regexp = Regexes.CSV_FILE_EXTENSION, message = ErrorMessage.VAL_ITEM_FILE_PATTERN)
+	// ファイルのバリデーションチェックはService層で実施
 	private MultipartFile itemFile;
 }

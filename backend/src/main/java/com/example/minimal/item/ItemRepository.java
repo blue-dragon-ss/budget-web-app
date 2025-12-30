@@ -10,7 +10,7 @@ import com.example.minimal.item.dto.ItemOverViewWithCategoryDto;
 
 public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
 	@Query("""
-			    select new your.package.ItemWithCategoryDto(
+			    select new com.example.minimal.item.dto.ItemWithCategoryDto(
 			        i.id,
 			        i.publicId,
 			        i.billingYm,
@@ -18,7 +18,7 @@ public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
 			        i.title,
 			        i.usageAmount,
 			        i.memo,
-			        c.id,
+			        c.id
 			    )
 			    from ItemEntity i
 			    join i.category c

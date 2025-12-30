@@ -18,6 +18,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.minimal.common.constants.Regexes;
 import com.example.minimal.common.constants.ValidationConstraints;
 import com.example.minimal.common.exception.error.BusinessException;
 import com.example.minimal.common.exception.error.ErrorCode;
@@ -104,7 +105,7 @@ public class CsvReader {
 		}
 		// 明細CSVファイル形式チェック（拡張子）
 		String originalFilename = file.getOriginalFilename();
-		if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
+		if (originalFilename == null || !originalFilename.toLowerCase().endsWith(Regexes.CSV_FILE_END)) {
 			throw new ValidationException(Fields.itemFile, ErrorMessage.VAL_ITEM_FILE_PATTERN,
 					ErrorCode.ITM_VAL_PATTERN_ITEM_FILE);
 		}

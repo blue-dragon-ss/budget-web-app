@@ -14,7 +14,7 @@ public final class ValidationConstraints {
 	public static final int NAME_MAX = 200;
 	public static final int EMAIL_MAX = 320;
 	public static final int NOTE_MAX = 10000;
-	public static final int YEAR_MONTH_LENGTH = 6;
+	public static final int YEAR_MONTH_LENGTH = 7; // "YYYY-MM"
 	public static final int TITLE_MAX = 200;
 	public static final int PAYER_MAX = 100;
 	public static final int PAYMENT_METHOD_MAX = 50;
