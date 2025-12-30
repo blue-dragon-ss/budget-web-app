@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -75,8 +76,8 @@ public class ItemService {
 		// DB用に年月を「yyyyMM」に変更
 		String targetYearMonthDB = targetYearMonth.format(YEAR_MONTH_DB_FORMATTER);
 
-		List<ItemOverViewWithCategoryDto> items = null;
-		BigDecimal totalAmount = new BigDecimal(0);
+		List<ItemOverViewWithCategoryDto> items = Collections.emptyList();
+		BigDecimal totalAmount = BigDecimal.ZERO;
 
 		try {
 			// 4.以下の処理でDBからデータを取得
@@ -87,7 +88,7 @@ public class ItemService {
 			items = itemRepository.findActiveItemsOverViewWithCategory(FIXED_MEMBER_ID, targetYearMonthDB);
 
 			// この際、検索結果件数と「当月支払金額」の合計も算出（#3）
-			if (items != null && items.size() > 0) {
+			if (items.size() > 0) {
 				totalAmount = itemRepository.sumUsageAmount(FIXED_MEMBER_ID, targetYearMonthDB);
 			}
 		} catch (DataIntegrityViolationException e) {
@@ -209,7 +210,7 @@ public class ItemService {
 		res.setYearMonth(yearMonth);
 		res.setTotalNum(items.size());
 		res.setTotalAmount(totalAmount);
-		if (items != null && items.size() > 0) {
+		if (items.size() > 0) {
 			res.setItemizedList(toP201ResponseItemizedList(items));
 		}
 		return res;
