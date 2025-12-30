@@ -62,7 +62,7 @@ public class GlobalExceptionHandler {
 		return (s == null || s.isBlank()) ? "" : s;
 	}
 
-	/** reuqestURIを引き出す */
+	/** requestURIを引き出す */
 	private static String requestURI(HttpServletRequest req) {
 		if (req == null) {
 			return "";
