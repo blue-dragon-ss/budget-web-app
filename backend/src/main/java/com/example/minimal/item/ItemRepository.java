@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.example.minimal.item.dto.ItemOverViewWithCategoryDto;
 
-public interface ItemRepository extends JpaRepository<ItemEntity, String> {
+public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
 	@Query("""
 			    select new com.example.minimal.item.dto.ItemOverViewWithCategoryDto(
 			        i.id,

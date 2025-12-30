@@ -71,7 +71,7 @@ public class ItemService {
 					.orElseThrow(() -> new BusinessException("memberId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
 							ErrorCode.ITM_BUS_BAD_FOREIGN_KEY));
 			// カテゴリIDの存在チェック（FK制約違反回避のため事前にチェック）
-			if (!categoryRepository.existsByIdAndDeletedAtIsNull(CategoryId.UNKNOWN)) {
+			if (!categoryRepository.existsByPkAndDeletedAtIsNull(CategoryId.UNKNOWN)) {
 				throw new BusinessException("categoryId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
 						ErrorCode.ITM_BUS_BAD_FOREIGN_KEY);
 			}
