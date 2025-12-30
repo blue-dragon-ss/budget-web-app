@@ -22,6 +22,12 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     compileOnly "org.flywaydb:flyway-core:11.7.2"
     implementation "org.flywaydb:flyway-database-postgresql:11.7.2"
+    
+    // Apache Commons IO
+    implementation "commons-io:commons-io:2.15.1"
+
+	// CSV
+	implementation 'org.apache.commons:commons-csv:1.10.0'
 
     // Lombok
     implementation "org.projectlombok:lombok"
