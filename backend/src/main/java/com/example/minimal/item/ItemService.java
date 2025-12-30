@@ -144,7 +144,7 @@ public class ItemService {
 		entity.setCurrentMonthPaid(row.currentMonthPaid());
 		entity.setNextMonthPaid(row.nextMonthPaid());
 		entity.setNewItem(row.isNewItems());
-		entity.setCategoryId(categoryId); // カテゴリはCSVに含まれないため初期値として0固定
+		entity.setCategoryId(categoryId);
 		entity.setMemo(row.memo());
 
 		entity.setMemberId(memberId); // TODO: 認証実装までは固定
