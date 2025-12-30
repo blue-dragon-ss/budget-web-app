@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 import com.example.minimal.common.constants.ValidationConstraints;
 import com.example.minimal.common.exception.error.CryptoOperationException;
@@ -157,6 +158,8 @@ public class StringUtils {
 			}
 			return date;
 		} catch (IllegalArgumentException e) {
+			return null;
+		} catch (DateTimeParseException e) {
 			return null;
 		}
 	}

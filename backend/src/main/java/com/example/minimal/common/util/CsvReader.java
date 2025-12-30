@@ -1,5 +1,6 @@
 package com.example.minimal.common.util;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +17,7 @@ import java.util.Map;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.io.input.BOMInputStream;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.minimal.common.constants.Regexes;
@@ -47,7 +49,7 @@ public class CsvReader {
 		public static final String IS_NEW_ITEMS = "新規サイン";
 
 		private static final String CURRENT_MONTH_PAID_TEMPLATE = "月支払金額";
-		private static final String NEXT_MONTH_PAID_TEMPLATE = "1月繰越残高";
+		private static final String NEXT_MONTH_PAID_TEMPLATE = "月繰越残高";
 
 		/** 現在月支払金額のヘッダー名を取得 */
 		public static String getCurrentMonthPaidHeader(YearMonth ym) {
@@ -110,8 +112,9 @@ public class CsvReader {
 					ErrorCode.ITM_VAL_PATTERN_ITEM_FILE);
 		}
 		// --- B. ざっくりバイナリ検知（nullバイトが多い等を弾く） ---
-		try (InputStream in = file.getInputStream()) {
-			if (looksBinary(in)) {
+		try (InputStream in = file.getInputStream();
+				InputStream BOMStripped = BOMInputStream.builder().setInputStream(in).get();) {
+			if (looksBinary(BOMStripped)) {
 				// バイナリデータ検知
 				throw new ValidationException(Fields.itemFile, ErrorMessage.VAL_ITEM_FILE_CSV_NULL_BYTE,
 						ErrorCode.ITM_VAL_NULL_BYTE_ITEM_FILE);
@@ -126,31 +129,36 @@ public class CsvReader {
 		List<CsvRow> rows = new ArrayList<>();
 		List<CsvParseError> errors = new ArrayList<>();
 
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), charset))) {
-
+		// CSVをBOM除去＋指定文字セットで読み込み
+		try (InputStream raw = file.getInputStream();
+				InputStream bomStripped = BOMInputStream.builder().setInputStream(raw).get();
+				BufferedReader reader = new BufferedReader(new InputStreamReader(bomStripped, charset))) {
 			CSVFormat format = CSVFormat.DEFAULT.builder().setHeader() // 1行目をヘッダーとして扱う
 					.setSkipHeaderRecord(true) // データ行から処理
 					.setTrim(true).setIgnoreEmptyLines(true).build();
+			// CSVパース
 			try (CSVParser parser = format.parse(reader)) {
-
 				// ヘッダー存在チェック
 				Map<String, Integer> headerMap = parser.getHeaderMap();
 				for (String required : CsvHeader.getRequiredHeaders(targetYearMonth)) {
 					if (!headerMap.containsKey(required)) {
 						// 1行目のヘッダー内容チェック：BUS-20301
-						throw new BusinessException(Fields.itemFile, ErrorMessage.ITM_CSV_HEADER,
+						throw new BusinessException(Fields.itemFile,
+								ErrorMessage.ITM_CSV_HEADER.concat(headerMap.keySet().toString()),
 								ErrorCode.ITM_BUS_CSV_HEADER);
 					}
 				}
 
-				if (parser.getRecords().isEmpty()) {
+				List<CSVRecord> recordList = parser.getRecords();
+				// データ行存在チェック
+				if (recordList.isEmpty()) {
 					// 2行目以降が存在するかチェック：BUS-20302
 					throw new BusinessException(Fields.itemFile, ErrorMessage.ITM_CSV_NO_DATA,
 							ErrorCode.ITM_BUS_CSV_NO_DATA);
 				}
 
 				// 「明細CSV」の中身をバリデーションチェックをしつつDB送信用にデータを整形する
-				for (CSVRecord record : parser) {
+				for (CSVRecord record : recordList) {
 					long lineNo = record.getRecordNumber() + 1; // ヘッダー行を+1するイメージ（環境でズレる場合あり）
 					// 取り出し（列名で）
 					LocalDate ym = StringUtils.parseDateOrNull(record.get(CsvHeader.USAGE_DATE));
@@ -160,7 +168,8 @@ public class CsvReader {
 					if (ym == null) {
 						if (rows.isEmpty()) {
 							// 2行目のデータの「利用日」が空の場合：BUS-20303（為替データが2行目に入っている）
-							throw new BusinessException(Fields.itemFile, ErrorMessage.ITM_CSV_SECOND_LINE_INVALID_DATA,
+							throw new BusinessException(Fields.itemFile,
+									ErrorMessage.ITM_CSV_SECOND_LINE_INVALID_DATA + record.toMap().toString(),
 									ErrorCode.ITM_BUS_CSV_SECOND_LINE_INVALID_DATA);
 						} else {
 							// 為替情報行の「利用店名・商品名」のバリデーションチェック
@@ -262,27 +271,27 @@ public class CsvReader {
 					rows.add(new CsvRow(ym, title, payer, paymentMethod, usageAmount, feeAmount, totalAmount,
 							currentMonthPaid, nextMonthPaid, isNewItems, null) /* メモはnull */);
 				}
-
-			} catch (IOException e) {
-				// 入出力エラー
-				throw new UnexpectedIOException(Fields.itemFile, ErrorMessage.COM_SERVER_ERROR_IO_MESSAGE,
-						ErrorCode.COM_SERVER_ERROR, e);
 			} catch (IllegalArgumentException e) {
 				// record.get("xxx") で列が存在しないなど
-
+				throw new BusinessException(Fields.itemFile, ErrorMessage.ITM_CSV_HEADER.concat(e.getMessage()),
+						ErrorCode.ITM_BUS_CSV_HEADER);
 			}
 		} catch (IOException e) {
 			// 入出力エラー
 			throw new UnexpectedIOException(Fields.itemFile, ErrorMessage.COM_SERVER_ERROR_IO_MESSAGE,
 					ErrorCode.COM_SERVER_ERROR, e);
 		}
-
 		// 取込データ＋エラー内容を返却
 		return new CsvData(rows, errors);
 	}
 
 	// ざっくりバイナリ検知（nullバイトが多い等を弾く）
-	private static boolean looksBinary(InputStream in) throws IOException {
+	private static boolean looksBinary(InputStream i) throws IOException {
+		InputStream in = i;
+		if (!in.markSupported()) {
+			// mark/reset非対応ストリームの場合、対応させる
+			in = new BufferedInputStream(i);
+		}
 		in.mark(4096);
 		byte[] buf = in.readNBytes(4096);
 		in.reset();

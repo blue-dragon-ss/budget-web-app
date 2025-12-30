@@ -212,8 +212,9 @@ public class GlobalExceptionHandler {
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_SERVER_ERROR,
 					ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null, List.of());
 		}
+		String couseMessage = ex.getCause() != null ? ex.getCause().getMessage() : null;
 		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // "SYS-0001"
-				ex.getMessage(), ex.getField(), // 通常は null
+				couseMessage != null ? ex.getMessage().concat(couseMessage) : ex.getMessage(), ex.getField(),
 				List.of(ex.getClass().getSimpleName()));
 	}
 
@@ -234,7 +235,7 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ErrorBody handleUnknown(Exception ex, HttpServletRequest req) {
 		return new ErrorBody(now(), traceId(req), ErrorCode.COM_SERVER_ERROR,
-				ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null,
+				ex != null ? ex.getMessage() : ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null,
 				ex != null ? List.of(ex.getClass().getSimpleName()) : List.of());
 	}
 }

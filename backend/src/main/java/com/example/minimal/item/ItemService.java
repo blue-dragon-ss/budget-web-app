@@ -41,7 +41,7 @@ public class ItemService {
 	private final MemberRepository memberRepository;
 	private final String UQ_ITEMS_CODE_ACTIVE = "uq_items_public_id_active";
 
-	private final String FIXED_MEMBER_ID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // TODO: 認証実装までは固定
+	private final String FIXED_MEMBER_ID = "01KDPRNCDA4D27CBC4PHDTR3MJ"; // TODO: 認証実装までは固定
 
 	@PersistenceContext
 	private EntityManager entityManager;
