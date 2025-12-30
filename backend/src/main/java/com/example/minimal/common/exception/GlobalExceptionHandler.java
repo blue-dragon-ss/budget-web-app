@@ -23,7 +23,9 @@ import com.example.minimal.common.exception.error.ValidationException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -74,6 +76,11 @@ public class GlobalExceptionHandler {
 		// 共通仮コード：VAL-0000（各APIでFFRRに差し替え予定）
 		String errorCode = validationErrorCodeResolver.resolve(fe).orElse(ErrorCode.COM_VAL_DEAFALT_ERROR);
 		List<String> details = ex != null ? List.of(ex.getClass().getSimpleName()) : List.of();
+		if (ex == null) {
+			log.warn("MethodArgumentNotValid exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
+		} else {
+			log.warn("MethodArgumentNotValid exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
+		}
 		return new ErrorBody(now(), traceId(req), errorCode, message, field, details);
 	}
 
@@ -88,6 +95,11 @@ public class GlobalExceptionHandler {
 		String message = fe == null ? ErrorMessage.DEAFALT_INVALID_MESSAGE : fe.getDefaultMessage();
 		String errorCode = validationErrorCodeResolver.resolve(fe).orElse(ErrorCode.COM_VAL_DEAFALT_ERROR);
 		List<String> details = ex != null ? List.of(ex.getClass().getSimpleName()) : List.of();
+		if (ex == null) {
+			log.warn("Bind exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
+		} else {
+			log.warn("Bind exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
+		}
 		return new ErrorBody(now(), traceId(req), errorCode, message, field, details);
 	}
 
@@ -97,10 +109,15 @@ public class GlobalExceptionHandler {
 	public ErrorBody handleConstraintViolation(ConstraintViolationException ex, HttpServletRequest req) {
 		String message = ErrorMessage.DEAFALT_INVALID_MESSAGE;
 		List<String> details = List.of();
-		if (ex != null && ex.getConstraintViolations() != null) {
-			message = ex.getConstraintViolations().stream().findFirst().map(v -> v.getMessage())
-					.orElse(ErrorMessage.DEAFALT_INVALID_MESSAGE);
-			details = List.of(ex.getClass().getSimpleName());
+		if (ex != null) {
+			if (ex.getConstraintViolations() != null) {
+				message = ex.getConstraintViolations().stream().findFirst().map(v -> v.getMessage())
+						.orElse(ErrorMessage.DEAFALT_INVALID_MESSAGE);
+				details = List.of(ex.getClass().getSimpleName());
+			}
+			log.warn("ConstraintViolation exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
+		} else {
+			log.warn("ConstraintViolation exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 		}
 		return new ErrorBody(now(), traceId(req), ErrorCode.COM_VAL_DEAFALT_ERROR, message, null, details);
 	}
@@ -109,6 +126,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public ErrorBody handleNotReadable(HttpMessageNotReadableException ex, HttpServletRequest req) {
+		if (ex == null) {
+			log.warn("HttpMessageNotReadable exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
+		} else {
+			log.warn("HttpMessageNotReadable exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
+		}
 		return new ErrorBody(now(), traceId(req), ErrorCode.COM_JSON_PARSE_ERROR, ErrorMessage.JSON_PARSE_ERROR_MESSAGE,
 				null, ex != null ? List.of(ex.getClass().getSimpleName()) : List.of());
 	}
@@ -118,9 +140,11 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public ErrorBody handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest req) {
 		if (ex == null) {
+			log.warn("IllegalArgument exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_BAD_REQUEST_ERROR,
 					ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE, null, List.of());
 		}
+		log.warn("IllegalArgument exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		String message = ex.getMessage();
 		if (message == null || message.isEmpty()) {
 			message = ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE;
@@ -134,9 +158,11 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.BAD_REQUEST) // 仕様次第では 409(CONFLICT) にしてもOK
 	public ErrorBody handleDuplicate(DuplicateValueException ex, HttpServletRequest req) {
 		if (ex == null) {
+			log.warn("DuplicateValue exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_VAL_DEAFALT_ERROR,
 					ErrorMessage.DEAFALT_INVALID_MESSAGE, null, List.of());
 		}
+		log.warn("DuplicateValue exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // 例: "VAL-0105"
 				ex.getMessage(), // メッセージ
 				ex.getField(), // エラー対象フィールド名（例: "code"）
@@ -148,9 +174,11 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public ErrorBody handleValidation(ValidationException ex, HttpServletRequest req) {
 		if (ex == null) {
+			log.warn("Validation exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_BAD_REQUEST_ERROR,
 					ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE, null, List.of());
 		}
+		log.warn("Validation exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		String field = ex.getField();
 		String message = ex.getMessage(); // 例）「会員名は必須です（VAL-0201）」
 		String errorCode = ex.getErrorCode();
@@ -165,9 +193,11 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.CONFLICT) // 冪等性競合のため 409 が適切
 	public ErrorBody handleIdempotencyConflict(IdempotencyConflictException ex, HttpServletRequest req) {
 		if (ex == null) {
+			log.warn("IdempotencyConflict exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 			return new ErrorBody(now(), traceId(req), ErrorCode.IDE_VAL_DEAFALT_ERROR,
 					ErrorMessage.IDE_DEAFALT_ERROR_MESSAGE, null, List.of());
 		}
+		log.warn("IdempotencyConflict exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // 例: "IDEMP-0001"
 				ex.getMessage(), // エラーメッセージ
 				ex.getField(), // エラー対象（例: "X-Idempotency-Key"）
@@ -179,9 +209,11 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public ErrorBody handleBusiness(BusinessException ex, HttpServletRequest req) {
 		if (ex == null) {
+			log.warn("Business exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_BAD_REQUEST_ERROR,
 					ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE, null, List.of());
 		}
+		log.warn("Business exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		String field = ex.getField();
 		String message = ex.getMessage();
 		String errorCode = ex.getErrorCode();
@@ -196,9 +228,11 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ErrorBody handleUnexpectedPersistence(UnexpectedPersistenceException ex, HttpServletRequest req) {
 		if (ex == null) {
+			log.error("UnhandledPersistence exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_SERVER_ERROR,
 					ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null, List.of());
 		}
+		log.error("UnhandledPersistence exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // "SYS-0001"
 				ex.getMessage(), ex.getField(), // 通常は null
 				List.of(ex.getClass().getSimpleName()));
@@ -209,13 +243,13 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ErrorBody handleUnexpectedIO(UnexpectedIOException ex, HttpServletRequest req) {
 		if (ex == null) {
+			log.error("UnhandledIO exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_SERVER_ERROR,
 					ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null, List.of());
 		}
-		String couseMessage = ex.getCause() != null ? ex.getCause().getMessage() : null;
+		log.error("UnhandledIO exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // "SYS-0001"
-				couseMessage != null ? ex.getMessage().concat(couseMessage) : ex.getMessage(), ex.getField(),
-				List.of(ex.getClass().getSimpleName()));
+				ex.getMessage(), ex.getField(), List.of(ex.getClass().getSimpleName()));
 	}
 
 	// 暗号化/復号化関連の例外
@@ -223,9 +257,11 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ErrorBody handleCrypto(CryptoOperationException ex, HttpServletRequest req) {
 		if (ex == null) {
+			log.error("CryptoOperation exception: path={}, traceId={}", req.getRequestURI(), traceId(req));
 			return new ErrorBody(now(), traceId(req), ErrorCode.COM_SERVER_ERROR,
 					ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null, List.of());
 		}
+		log.error("CryptoOperation exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // 例: COM_SHA256_ALGORITHM_NOT_FOUND
 				ex.getMessage(), ex.getField(), // 通常 null
 				List.of(ex.getClass().getSimpleName()));
@@ -234,8 +270,9 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(Exception.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ErrorBody handleUnknown(Exception ex, HttpServletRequest req) {
+		log.error("Unhandled exception: path={}, traceId={}", req.getRequestURI(), traceId(req), ex);
 		return new ErrorBody(now(), traceId(req), ErrorCode.COM_SERVER_ERROR,
-				ex != null ? ex.getMessage() : ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null,
+				ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null,
 				ex != null ? List.of(ex.getClass().getSimpleName()) : List.of());
 	}
 }
