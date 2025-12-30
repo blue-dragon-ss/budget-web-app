@@ -9,9 +9,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.minimal.category.CategoryRepository;
 import com.example.minimal.common.TraceIdHolder;
+import com.example.minimal.common.constants.CategoryId;
+import com.example.minimal.common.constants.SQLState;
 import com.example.minimal.common.exception.DuplicateValueException;
 import com.example.minimal.common.exception.UnexpectedPersistenceException;
+import com.example.minimal.common.exception.error.BusinessException;
 import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.common.exception.error.ErrorMessage;
 import com.example.minimal.common.util.CsvReader;
@@ -22,7 +26,7 @@ import com.example.minimal.common.util.SQLUtils;
 import com.example.minimal.item.dto.P203Request;
 import com.example.minimal.item.dto.P203Response;
 import com.example.minimal.item.dto.P203ResponseError;
-import com.example.minimal.member.dto.CreateMemberRequest.Fields;
+import com.example.minimal.member.MemberRepository;
 import com.github.f4b6a3.ulid.UlidCreator;
 
 import jakarta.persistence.EntityManager;
@@ -32,13 +36,20 @@ import jakarta.persistence.PersistenceContext;
 public class ItemService {
 
 	private final ItemRepository itemRepository;
+	private final CategoryRepository categoryRepository;
+	private final MemberRepository memberRepository;
 	private final String UQ_ITEMS_CODE_ACTIVE = "uq_items_public_id_active";
+
+	private final String FIXED_MEMBER_ID = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // TODO: 認証実装までは固定
 
 	@PersistenceContext
 	private EntityManager entityManager;
 
-	public ItemService(ItemRepository itemRepository) {
+	public ItemService(
+			ItemRepository itemRepository, CategoryRepository categoryRepository, MemberRepository memberRepository) {
 		this.itemRepository = itemRepository;
+		this.categoryRepository = categoryRepository;
+		this.memberRepository = memberRepository;
 	}
 
 	private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
@@ -55,18 +66,34 @@ public class ItemService {
 		List<CsvParseError> errors = csvData.errors();
 		// ただし直前のチェックで1つでもエラーがあればDBへの取り込みを行わずレスポンス返却に移る
 		if (errors.isEmpty()) {
+			// 会員IDの存在チェック（FK制約違反回避のため事前にチェック）
+			memberRepository.findByIdAndDeletedAtIsNull(FIXED_MEMBER_ID)
+					.orElseThrow(() -> new BusinessException("memberId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
+							ErrorCode.ITM_BUS_BAD_FOREIGN_KEY));
+			// カテゴリIDの存在チェック（FK制約違反回避のため事前にチェック）
+			if (!categoryRepository.existsByIdAndDeletedAtIsNull(CategoryId.UNKNOWN)) {
+				throw new BusinessException("categoryId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
+						ErrorCode.ITM_BUS_BAD_FOREIGN_KEY);
+			}
 			// CSVの各行データをEntityに変換しDBへ登録
 			for (CsvRow csvRow : row) {
+				// CSV行データをEntityに変換
 				ItemEntity entity = toEntity(csvRow, targetYearMonth);
 				// DB登録
 				try {
+					// CSVの各行データをEntityに変換しDBへ登録
 					itemRepository.save(entity);
 				} catch (DataIntegrityViolationException e) {
 					// 送信に失敗したら送信前の状態にロールバックさせ、エラーを投げる
 					if (SQLUtils.isUniqueViolation(e, UQ_ITEMS_CODE_ACTIVE)) {
 						// DB 側で競合（23505）が起きた場合もクライアント向けに統一
-						throw new DuplicateValueException(Fields.code, ErrorMessage.ITM_CONFLICT_PUBLIC_ID,
+						throw new DuplicateValueException("publicId", ErrorMessage.ITM_CONFLICT_PUBLIC_ID,
 								ErrorCode.ITM_BUS_CONFLICT_PUBLIC_ID);
+					} else if (SQLUtils.isForeignKeyViolation(e, SQLState.FOREIGN_KEY_VIOLATION.getCode())) {
+						// FK違反の場合は
+						throw new BusinessException("memberId or categoryId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
+								ErrorCode.ITM_BUS_BAD_FOREIGN_KEY);
+
 					}
 					// 想定外の永続化エラーは自前の500用例外に正規化して再投げ
 					throw new UnexpectedPersistenceException(null, ErrorMessage.COM_SERVER_ERROR_MESSAGE,
@@ -104,9 +131,9 @@ public class ItemService {
 		entity.setCategoryId(0L); // カテゴリはCSVに含まれないため初期値として0固定
 		entity.setMemo(row.memo());
 
-		entity.setMemberId("ABCDEFGHIJKLMNOPQRSTUVWXYZ"); // TODO: 認証実装までは固定
-		entity.setCreatedBy("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-		entity.setUpdatedBy("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+		entity.setMemberId(FIXED_MEMBER_ID); // TODO: 認証実装までは固定
+		entity.setCreatedBy(FIXED_MEMBER_ID);
+		entity.setUpdatedBy(FIXED_MEMBER_ID);
 
 		return entity;
 	}

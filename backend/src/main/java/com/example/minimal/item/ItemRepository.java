@@ -8,9 +8,9 @@ import org.springframework.data.repository.query.Param;
 
 import com.example.minimal.item.dto.ItemOverViewWithCategoryDto;
 
-public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
+public interface ItemRepository extends JpaRepository<ItemEntity, String> {
 	@Query("""
-			    select new com.example.minimal.item.dto.ItemWithCategoryDto(
+			    select new com.example.minimal.item.dto.ItemOverViewWithCategoryDto(
 			        i.id,
 			        i.publicId,
 			        i.billingYm,

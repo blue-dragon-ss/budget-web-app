@@ -42,6 +42,7 @@ public final class ErrorMessage {
 
 	// Item
 	public static final String ITM_CONFLICT_PUBLIC_ID = "公開IDは既に使用されています。";
+	public static final String ITM_BAD_FOREIGN_KEY = "会員IDまたはカテゴリIDが存在しません。";
 
 	// Item CSV Business
 	public static final String ITM_CSV_HEADER = "明細CSVのヘッダーが正しくありません。";

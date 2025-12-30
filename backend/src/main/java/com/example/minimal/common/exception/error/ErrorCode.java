@@ -30,6 +30,7 @@ public final class ErrorCode {
 	public static final String ITM_BUS_CSV_NO_DATA = "BUS-20302";
 	public static final String ITM_BUS_CSV_SECOND_LINE_INVALID_DATA = "BUS-20303";
 	public static final String ITM_BUS_CONFLICT_PUBLIC_ID = "BUS-20304";
+	public static final String ITM_BUS_BAD_FOREIGN_KEY = "BUS-20305";
 
 	// ITEM: CSV VALIDATION
 	public static final String ITM_VAL_CSV_ERROR_USAGE_DATE = "VAL-20899";

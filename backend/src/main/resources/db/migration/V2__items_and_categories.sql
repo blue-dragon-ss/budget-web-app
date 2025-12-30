@@ -45,7 +45,7 @@ CREATE INDEX IF NOT EXISTS ix_items_member_id_billing_ym_active
 -- 外部キー（参照先のPKカラム名は実定義に合わせてください）
 ALTER TABLE items
   ADD CONSTRAINT fk_items_category_id
-  FOREIGN KEY (category_id) REFERENCES categories(id);
+  FOREIGN KEY (category_id) REFERENCES categories(pk);
 
 ALTER TABLE items
   ADD CONSTRAINT fk_items_member_id
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS categories (
   	updated_at   TIMESTAMPTZ   NOT NULL DEFAULT CURRENT_TIMESTAMP,
   	updated_by	 VARCHAR(26),
   	deleted_at   TIMESTAMPTZ
-)
+);
 
 -- 論理削除前提の一意制（deleted_at IS NULL のみ対象）: Partial Unique Index（PostgreSQL）
 CREATE UNIQUE INDEX IF NOT EXISTS  uq_categories_id_member_id_active
@@ -83,7 +83,7 @@ ALTER TABLE categories
 
 ALTER TABLE categories
   ADD CONSTRAINT fk_categories_member_id
-  FOREIGN KEY (member_id) REFERENCES member(id);
+  FOREIGN KEY (member_id) REFERENCES members(id);
 
 -- 形式・範囲チェック
 ALTER TABLE categories
