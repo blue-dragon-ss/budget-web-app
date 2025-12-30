@@ -14,9 +14,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.example.minimal.common.constants.LogFields;
+import com.example.minimal.common.exception.error.BusinessException;
 import com.example.minimal.common.exception.error.CryptoOperationException;
 import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.common.exception.error.ErrorMessage;
+import com.example.minimal.common.exception.error.UnexpectedIOException;
+import com.example.minimal.common.exception.error.ValidationException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -31,7 +34,12 @@ public class GlobalExceptionHandler {
 	}
 
 	/** 仕様：timestamp/traceId/errorCode/message/field/details の固定形 */
-	public record ErrorBody(String timestamp, String traceId, String errorCode, String message, String field,
+	public record ErrorBody(
+			String timestamp,
+			String traceId,
+			String errorCode,
+			String message,
+			String field,
 			List<String> details) {
 	}
 
@@ -121,6 +129,7 @@ public class GlobalExceptionHandler {
 				List.of(ex.getClass().getSimpleName()));
 	}
 
+	/** 一意制約違反例外 → 400 Bad Request */
 	@ExceptionHandler(DuplicateValueException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST) // 仕様次第では 409(CONFLICT) にしてもOK
 	public ErrorBody handleDuplicate(DuplicateValueException ex, HttpServletRequest req) {
@@ -134,8 +143,24 @@ public class GlobalExceptionHandler {
 				List.of(ex.getClass().getSimpleName()));
 	}
 
+	/** 独自のバリデーション例外 */
+	@ExceptionHandler(ValidationException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ErrorBody handleValidation(ValidationException ex, HttpServletRequest req) {
+		if (ex == null) {
+			return new ErrorBody(now(), traceId(req), ErrorCode.COM_BAD_REQUEST_ERROR,
+					ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE, null, List.of());
+		}
+		String field = ex.getField();
+		String message = ex.getMessage(); // 例）「会員名は必須です（VAL-0201）」
+		String errorCode = ex.getErrorCode();
+		List<String> details = ex != null ? List.of(ex.getClass().getSimpleName()) : List.of();
+		return new ErrorBody(now(), traceId(req), errorCode, message, field, details);
+	}
+
 	/* -------------------- 409: 一意制約など -------------------- */
 
+	/** 冪等性競合例外 → 409 Conflict */
 	@ExceptionHandler(IdempotencyConflictException.class)
 	@ResponseStatus(HttpStatus.CONFLICT) // 冪等性競合のため 409 が適切
 	public ErrorBody handleIdempotencyConflict(IdempotencyConflictException ex, HttpServletRequest req) {
@@ -149,8 +174,24 @@ public class GlobalExceptionHandler {
 				List.of(ex.getClass().getSimpleName()));
 	}
 
+	/** ビジネス例外 → 409 Conflict */
+	@ExceptionHandler(BusinessException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public ErrorBody handleBusiness(BusinessException ex, HttpServletRequest req) {
+		if (ex == null) {
+			return new ErrorBody(now(), traceId(req), ErrorCode.COM_BAD_REQUEST_ERROR,
+					ErrorMessage.DEAFALT_BAD_REQUEST_MESSAGE, null, List.of());
+		}
+		String field = ex.getField();
+		String message = ex.getMessage();
+		String errorCode = ex.getErrorCode();
+		List<String> details = ex != null ? List.of(ex.getClass().getSimpleName()) : List.of();
+		return new ErrorBody(now(), traceId(req), errorCode, message, field, details);
+	}
+
 	/* -------------------- 500: その他予期しない例外 -------------------- */
 
+	// 永続化関連の予期しない例外
 	@ExceptionHandler(UnexpectedPersistenceException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ErrorBody handleUnexpectedPersistence(UnexpectedPersistenceException ex, HttpServletRequest req) {
@@ -163,6 +204,20 @@ public class GlobalExceptionHandler {
 				List.of(ex.getClass().getSimpleName()));
 	}
 
+	// IO 関連の予期しない例外
+	@ExceptionHandler(UnexpectedIOException.class)
+	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+	public ErrorBody handleUnexpectedIO(UnexpectedIOException ex, HttpServletRequest req) {
+		if (ex == null) {
+			return new ErrorBody(now(), traceId(req), ErrorCode.COM_SERVER_ERROR,
+					ErrorMessage.DEAFALT_INTERNAL_SERVER_ERROR_MESSAGE, null, List.of());
+		}
+		return new ErrorBody(now(), traceId(req), ex.getErrorCode(), // "SYS-0001"
+				ex.getMessage(), ex.getField(), // 通常は null
+				List.of(ex.getClass().getSimpleName()));
+	}
+
+	// 暗号化/復号化関連の例外
 	@ExceptionHandler(CryptoOperationException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public ErrorBody handleCrypto(CryptoOperationException ex, HttpServletRequest req) {

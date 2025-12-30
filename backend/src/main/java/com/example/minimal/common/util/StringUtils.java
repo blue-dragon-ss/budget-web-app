@@ -1,15 +1,23 @@
 package com.example.minimal.common.util;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
+import com.example.minimal.common.constants.ValidationConstraints;
 import com.example.minimal.common.exception.error.CryptoOperationException;
 import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.common.exception.error.ErrorMessage;
 
+import jakarta.validation.constraints.NotNull;
+
 public class StringUtils {
 
 	private static final String SHA_256 = "SHA-256";
+	private static final String LOCAL_DATE_PATTERN = "yyyy/MM/dd";
+	private static final LocalDate DATE_1900_01_01 = LocalDate.of(1900, 1, 1);
 
 	/**
 	 * 文字列のトリム（null 安全版）
@@ -101,6 +109,74 @@ public class StringUtils {
 		} catch (Exception e) {
 			throw new CryptoOperationException(null, ErrorMessage.SHA256_ALGORITHM_NOT_FOUND,
 					ErrorCode.COM_SHA256_ALGORITHM_NOT_FOUND, e);
+		}
+	}
+
+	/**
+	 * 文字列が null または空文字かどうかを判定
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static boolean isNullOrEmpty(String s) {
+		return s == null || s.isEmpty();
+	}
+
+	/**
+	 * 文字列が null またはトリム後に空文字かどうかを判定
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static boolean isNullOrTrimmedEmpty(String s) {
+		return s == null || trim(s).isEmpty();
+	}
+
+	/**
+	 * 文字列が最大長以下かどうかを判定
+	 * 
+	 * @param s
+	 * @param maxLength
+	 * @return
+	 */
+	public static boolean isUnderMaxLength(@NotNull String s, int maxLength) {
+		return s.length() <= maxLength;
+	}
+
+	/**
+	 * 文字列(yyyy/MM/dd)を Date に変換。変換できないか1900年より前の場合は null を返す。
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static LocalDate parseDateOrNull(String s) {
+		try {
+			LocalDate date = LocalDate.parse(trim(s), DateTimeFormatter.ofPattern(LOCAL_DATE_PATTERN));
+			if (date.isBefore(DATE_1900_01_01)) {
+				return null;
+			}
+			return date;
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * 文字列を BigDecimal に変換。変換できないか0～999999999の間にない場合は null を返す。
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static BigDecimal parseBigDecimalOrNull(String s) {
+		try {
+			BigDecimal val = new BigDecimal(trim(s));
+			if (val.compareTo(ValidationConstraints.MIN_BIGDECIMAL_VALUE) < 0
+					|| val.compareTo(ValidationConstraints.MAX_BIGDECIMAL_VALUE) > 0) {
+				return null;
+			}
+			return val;
+		} catch (NumberFormatException e) {
+			return null;
 		}
 	}
 }
