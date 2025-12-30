@@ -82,7 +82,7 @@ public class ItemService {
 			// CSVの各行データをEntityに変換しDBへ登録
 			for (CsvRow csvRow : row) {
 				// CSV行データをEntityに変換
-				ItemEntity entity = toEntity(csvRow, unknownCategoryId, targetYearMonth);
+				ItemEntity entity = toEntity(csvRow, unknownCategoryId, targetYearMonth, FIXED_MEMBER_ID);
 				// DB登録
 				try {
 					// CSVの各行データをEntityに変換しDBへ登録
@@ -130,7 +130,7 @@ public class ItemService {
 	}
 
 	// CSV行データをEntityに変換
-	private ItemEntity toEntity(CsvRow row, long categoryId, YearMonth yearMonth) {
+	private ItemEntity toEntity(CsvRow row, long categoryId, YearMonth yearMonth, String memberId) {
 		ItemEntity entity = new ItemEntity();
 		entity.setPublicId(UlidCreator.getUlid().toString());
 		entity.setBillingYm(yearMonth.format(YEAR_MONTH_DB_FORMATTER));
@@ -144,12 +144,12 @@ public class ItemService {
 		entity.setCurrentMonthPaid(row.currentMonthPaid());
 		entity.setNextMonthPaid(row.nextMonthPaid());
 		entity.setNewItem(row.isNewItems());
-		entity.setCategoryId(0L); // カテゴリはCSVに含まれないため初期値として0固定
+		entity.setCategoryId(categoryId); // カテゴリはCSVに含まれないため初期値として0固定
 		entity.setMemo(row.memo());
 
-		entity.setMemberId(FIXED_MEMBER_ID); // TODO: 認証実装までは固定
-		entity.setCreatedBy(FIXED_MEMBER_ID);
-		entity.setUpdatedBy(FIXED_MEMBER_ID);
+		entity.setMemberId(memberId); // TODO: 認証実装までは固定
+		entity.setCreatedBy(memberId);
+		entity.setUpdatedBy(memberId);
 
 		return entity;
 	}
