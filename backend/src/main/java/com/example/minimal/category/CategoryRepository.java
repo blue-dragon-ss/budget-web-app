@@ -5,7 +5,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CategoryRepository extends JpaRepository<CategoryEntity, Long> {
-	// 会員IDとカテゴリローカルIDで存在確認
+	// カテゴリ主キーの存在確認
 	boolean existsByPkAndDeletedAtIsNull(Long id);
 
 	// 会員IDとカテゴリローカルIDで存在確認

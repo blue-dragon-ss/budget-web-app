@@ -75,8 +75,7 @@ public class ItemService {
 			CategoryEntity unknownCategoryEntity = categoryRepository
 					.findByIdAndMemberIdAndDeletedAtIsNull(CategoryId.UNKNOWN, FIXED_MEMBER_ID).orElseGet(() -> {
 						// 未設定カテゴリがなければ作成
-						categoryRepository.save(getUnknownCategoryEntity(FIXED_MEMBER_ID));
-						return getUnknownCategoryEntity(FIXED_MEMBER_ID);
+						return categoryRepository.save(getUnknownCategoryEntity(FIXED_MEMBER_ID));
 					});
 			// 未設定カテゴリのPKを取得
 			long unknownCategoryId = unknownCategoryEntity.getPk();
@@ -124,9 +123,9 @@ public class ItemService {
 		entity.setId(CategoryId.UNKNOWN);
 		entity.setName("未設定");
 		entity.setDisplayOrder(9999); // 未設定カテゴリは最後に表示
-		entity.setMemberId(FIXED_MEMBER_ID); // TODO: 認証実装までは固定
-		entity.setCreatedBy(FIXED_MEMBER_ID);
-		entity.setUpdatedBy(FIXED_MEMBER_ID);
+		entity.setMemberId(memberId);
+		entity.setCreatedBy(memberId);
+		entity.setUpdatedBy(memberId);
 		return entity;
 	}
 
