@@ -9,6 +9,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.minimal.category.CategoryEntity;
 import com.example.minimal.category.CategoryRepository;
 import com.example.minimal.common.TraceIdHolder;
 import com.example.minimal.common.constants.CategoryId;
@@ -70,15 +71,19 @@ public class ItemService {
 			memberRepository.findByIdAndDeletedAtIsNull(FIXED_MEMBER_ID)
 					.orElseThrow(() -> new BusinessException("memberId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
 							ErrorCode.ITM_BUS_BAD_FOREIGN_KEY));
-			// カテゴリIDの存在チェック（FK制約違反回避のため事前にチェック）
-			if (!categoryRepository.existsByPkAndDeletedAtIsNull(CategoryId.UNKNOWN)) {
-				throw new BusinessException("categoryId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
-						ErrorCode.ITM_BUS_BAD_FOREIGN_KEY);
-			}
+			// 未設定のカテゴリIDのPKを取得、なければ作成する
+			CategoryEntity unknownCategoryEntity = categoryRepository
+					.findByIdAndMemberIdAndDeletedAtIsNull(CategoryId.UNKNOWN, FIXED_MEMBER_ID).orElseGet(() -> {
+						// 未設定カテゴリがなければ作成
+						categoryRepository.save(getUnknownCategoryEntity(FIXED_MEMBER_ID));
+						return getUnknownCategoryEntity(FIXED_MEMBER_ID);
+					});
+			// 未設定カテゴリのPKを取得
+			long unknownCategoryId = unknownCategoryEntity.getPk();
 			// CSVの各行データをEntityに変換しDBへ登録
 			for (CsvRow csvRow : row) {
 				// CSV行データをEntityに変換
-				ItemEntity entity = toEntity(csvRow, targetYearMonth);
+				ItemEntity entity = toEntity(csvRow, unknownCategoryId, targetYearMonth);
 				// DB登録
 				try {
 					// CSVの各行データをEntityに変換しDBへ登録
@@ -113,8 +118,20 @@ public class ItemService {
 		return toP203Response(row.size(), errors.size(), errors);
 	}
 
+	// 未設定カテゴリのEntityを作成
+	private CategoryEntity getUnknownCategoryEntity(String memberId) {
+		CategoryEntity entity = new CategoryEntity();
+		entity.setId(CategoryId.UNKNOWN);
+		entity.setName("未設定");
+		entity.setDisplayOrder(9999); // 未設定カテゴリは最後に表示
+		entity.setMemberId(FIXED_MEMBER_ID); // TODO: 認証実装までは固定
+		entity.setCreatedBy(FIXED_MEMBER_ID);
+		entity.setUpdatedBy(FIXED_MEMBER_ID);
+		return entity;
+	}
+
 	// CSV行データをEntityに変換
-	private ItemEntity toEntity(CsvRow row, YearMonth yearMonth) {
+	private ItemEntity toEntity(CsvRow row, long categoryId, YearMonth yearMonth) {
 		ItemEntity entity = new ItemEntity();
 		entity.setPublicId(UlidCreator.getUlid().toString());
 		entity.setBillingYm(yearMonth.format(YEAR_MONTH_DB_FORMATTER));

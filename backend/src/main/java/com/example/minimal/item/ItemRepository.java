@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import com.example.minimal.item.dto.ItemOverViewWithCategoryDto;
 
 public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
+	// 会員IDと請求年月でアクティブなアイテム一覧を取得（カテゴリ情報付き）
 	@Query("""
 			    select new com.example.minimal.item.dto.ItemOverViewWithCategoryDto(
 			        i.id,

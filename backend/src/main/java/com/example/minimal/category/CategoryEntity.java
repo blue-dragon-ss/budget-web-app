@@ -52,12 +52,14 @@ public class CategoryEntity {
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
+	@Setter
 	@Column(name = "created_by", length = 26)
 	private String createdBy;
 
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
 
+	@Setter
 	@Column(name = "updated_by", length = 26)
 	private String updatedBy;
 
