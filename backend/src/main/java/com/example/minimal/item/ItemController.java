@@ -29,7 +29,7 @@ import jakarta.validation.constraints.Size;
 @Validated
 public class ItemController {
 
-	private final ItemService itemService;;
+	private final ItemService itemService;
 
 	public ItemController(ItemService itemService) {
 		this.itemService = itemService;
