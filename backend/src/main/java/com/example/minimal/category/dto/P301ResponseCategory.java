@@ -10,5 +10,5 @@ import lombok.Setter;
 public class P301ResponseCategory {
 	private int categoryId;
 	private String categoryName;
-	private int upperCategoryID;
+	private Integer upperCategoryID;
 }

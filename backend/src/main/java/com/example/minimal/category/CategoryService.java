@@ -10,15 +10,9 @@ import com.example.minimal.category.dto.P301Response;
 import com.example.minimal.category.dto.P301ResponseCategory;
 import com.example.minimal.common.constants.FixedMemberId;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
 @Service
 public class CategoryService {
 	private final CategoryRepository categoryRepository;
-
-	@PersistenceContext
-	private EntityManager entityManager;
 
 	public CategoryService(CategoryRepository categoryRepository) {
 		this.categoryRepository = categoryRepository;
