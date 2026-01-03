@@ -144,7 +144,8 @@ public class CsvReader {
 					if (!headerMap.containsKey(required)) {
 						// 1行目のヘッダー内容チェック：BUS-20301
 						throw new BusinessException(Fields.itemFile,
-								ErrorMessage.ITM_CSV_HEADER.concat(headerMap.keySet().toString()),
+								ErrorMessage.ITM_CSV_HEADER.concat("CSV : " + headerMap.keySet().toString())
+										.concat(" Required : " + CsvHeader.getRequiredHeaders(targetYearMonth)),
 								ErrorCode.ITM_BUS_CSV_HEADER);
 					}
 				}

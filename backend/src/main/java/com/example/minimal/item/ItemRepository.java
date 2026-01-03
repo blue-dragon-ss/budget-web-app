@@ -1,5 +1,6 @@
 package com.example.minimal.item;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,4 +33,13 @@ public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
 			""")
 	List<ItemOverViewWithCategoryDto> findActiveItemsOverViewWithCategory(
 			@Param("memberId") String memberId, @Param("billingYm") String billingYm);
+
+	@Query("""
+			    select coalesce(sum(i.usageAmount), 0)
+			    from ItemEntity i
+			    where i.memberId = :memberId
+			      and i.billingYm = :billingYm
+			      and i.deletedAt is null
+			""")
+	BigDecimal sumUsageAmount(@Param("memberId") String memberId, @Param("billingYm") String billingYm);
 }

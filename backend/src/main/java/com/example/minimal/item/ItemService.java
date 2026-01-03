@@ -1,8 +1,10 @@
 package com.example.minimal.item;
 
+import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,6 +15,7 @@ import com.example.minimal.category.CategoryEntity;
 import com.example.minimal.category.CategoryRepository;
 import com.example.minimal.common.TraceIdHolder;
 import com.example.minimal.common.constants.CategoryId;
+import com.example.minimal.common.constants.Formats;
 import com.example.minimal.common.constants.SQLState;
 import com.example.minimal.common.exception.DuplicateValueException;
 import com.example.minimal.common.exception.UnexpectedPersistenceException;
@@ -24,6 +27,9 @@ import com.example.minimal.common.util.CsvReader.CsvData;
 import com.example.minimal.common.util.CsvReader.CsvParseError;
 import com.example.minimal.common.util.CsvReader.CsvRow;
 import com.example.minimal.common.util.SQLUtils;
+import com.example.minimal.item.dto.ItemOverViewWithCategoryDto;
+import com.example.minimal.item.dto.P201Response;
+import com.example.minimal.item.dto.P201ResponseItem;
 import com.example.minimal.item.dto.P203Request;
 import com.example.minimal.item.dto.P203Response;
 import com.example.minimal.item.dto.P203ResponseError;
@@ -53,8 +59,51 @@ public class ItemService {
 		this.memberRepository = memberRepository;
 	}
 
-	private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
-	private static final DateTimeFormatter YEAR_MONTH_DB_FORMATTER = DateTimeFormatter.ofPattern("yyyyMM");
+	private static final DateTimeFormatter YEAR_MONTH_FORMATTER = DateTimeFormatter.ofPattern(Formats.YEAR_MONTH);
+	private static final DateTimeFormatter YEAR_MONTH_DB_FORMATTER = DateTimeFormatter.ofPattern(Formats.YEAR_MONTH_DB);
+	private static final DateTimeFormatter USAGE_DATE_FORMATTER = DateTimeFormatter.ofPattern(Formats.USAGE_DATE);
+
+	@Transactional
+	public P201Response getItems(String yearMonth) {
+		// 3.URLパラメータの「年月」を「-」で分割（#1）
+		// ①バリデーションチェック（範囲）
+		YearMonth targetYearMonth = YearMonth.parse(yearMonth, YEAR_MONTH_FORMATTER);
+
+		// 会員IDの存在チェック（FK制約違反回避のため事前にチェック）
+		memberRepository.findByIdAndDeletedAtIsNull(FIXED_MEMBER_ID).orElseThrow(() -> new BusinessException("memberId",
+				ErrorMessage.ITM_BAD_FOREIGN_KEY, ErrorCode.ITM_BUS_BAD_FOREIGN_KEY));
+
+		// DB用に年月を「yyyyMM」に変更
+		String targetYearMonthDB = targetYearMonth.format(YEAR_MONTH_DB_FORMATTER);
+
+		List<ItemOverViewWithCategoryDto> items = Collections.emptyList();
+		BigDecimal totalAmount = BigDecimal.ZERO;
+
+		try {
+			// 4.以下の処理でDBからデータを取得
+			// ①「DB02_明細」から「支払年月」=「年月」と「会員ID」でデータを検索（#2）
+			// ②「DB02_明細.カテゴリID = DB03_カテゴリマスタ.カテゴリ主キー」の条件で
+			// ①に取得したデータに「DB02_明細.カテゴリローカルID」を関連付け（#4）
+			// ※会員IDは固定のものを使用する
+			items = itemRepository.findActiveItemsOverViewWithCategory(FIXED_MEMBER_ID, targetYearMonthDB);
+
+			// この際、検索結果件数と「当月支払金額」の合計も算出（#3）
+			if (items.size() > 0) {
+				totalAmount = itemRepository.sumUsageAmount(FIXED_MEMBER_ID, targetYearMonthDB);
+			}
+		} catch (DataIntegrityViolationException e) {
+			// 想定外の永続化エラーは自前の500用例外に正規化して再投げ
+			throw new UnexpectedPersistenceException(null, ErrorMessage.COM_SERVER_ERROR_MESSAGE,
+					ErrorCode.COM_SERVER_ERROR, e);
+		}
+
+		// ③「アウトプット元」に書かれているデータを取得
+		// 5.レスポンスを返却
+		// 成功時：登録データを返却（traceId含む）
+		// 上記レスポンス仕様の形に整形
+		// 失敗時：例外コード変換し共通フォーマットで応答
+		return toP201Response(yearMonth, items, totalAmount.longValue());
+	}
 
 	@Transactional
 	public P203Response importCsv(P203Request request) {
@@ -152,6 +201,40 @@ public class ItemService {
 		entity.setUpdatedBy(memberId);
 
 		return entity;
+	}
+
+	// 明細情報を一覧取得のレスポンスに変換
+	private static P201Response toP201Response(
+			String yearMonth, List<ItemOverViewWithCategoryDto> items, long totalAmount) {
+		P201Response res = new P201Response();
+		res.setYearMonth(yearMonth);
+		res.setTotalNum(items.size());
+		res.setTotalAmount(totalAmount);
+		if (items.size() > 0) {
+			res.setItemizedList(toP201ResponseItemizedList(items));
+		}
+		return res;
+	}
+
+	// 明細情報リストをレスポンスへ変換
+	private static List<P201ResponseItem> toP201ResponseItemizedList(List<ItemOverViewWithCategoryDto> items) {
+		List<P201ResponseItem> res = new ArrayList<P201ResponseItem>();
+		for (ItemOverViewWithCategoryDto item : items) {
+			res.add(toP201ResponseItem(item));
+		}
+		return res;
+	}
+
+	// 明細情報をレスポンスへ変換
+	private static P201ResponseItem toP201ResponseItem(ItemOverViewWithCategoryDto item) {
+		P201ResponseItem res = new P201ResponseItem();
+		res.setItemId(item.publicId());
+		res.setDate(item.usageDate().format(USAGE_DATE_FORMATTER));
+		res.setTitle(item.title());
+		res.setCategoryId(item.categoryLocalId());
+		res.setMemo(item.memo());
+		res.setAmount(item.usageAmount().longValue());
+		return res;
 	}
 
 	// 成功・失敗件数＋エラーリストをレスポンスに変換
