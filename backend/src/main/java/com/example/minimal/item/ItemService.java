@@ -15,6 +15,7 @@ import com.example.minimal.category.CategoryEntity;
 import com.example.minimal.category.CategoryRepository;
 import com.example.minimal.common.TraceIdHolder;
 import com.example.minimal.common.constants.CategoryId;
+import com.example.minimal.common.constants.FixedMemberId;
 import com.example.minimal.common.constants.Formats;
 import com.example.minimal.common.constants.SQLState;
 import com.example.minimal.common.exception.DuplicateValueException;
@@ -47,8 +48,6 @@ public class ItemService {
 	private final MemberRepository memberRepository;
 	private final String UQ_ITEMS_CODE_ACTIVE = "uq_items_public_id_active";
 
-	private final String FIXED_MEMBER_ID = "01KDPRNCDA4D27CBC4PHDTR3MJ"; // TODO: 認証実装までは固定
-
 	@PersistenceContext
 	private EntityManager entityManager;
 
@@ -70,8 +69,9 @@ public class ItemService {
 		YearMonth targetYearMonth = YearMonth.parse(yearMonth, YEAR_MONTH_FORMATTER);
 
 		// 会員IDの存在チェック（FK制約違反回避のため事前にチェック）
-		memberRepository.findByIdAndDeletedAtIsNull(FIXED_MEMBER_ID).orElseThrow(() -> new BusinessException("memberId",
-				ErrorMessage.ITM_BAD_FOREIGN_KEY, ErrorCode.ITM_BUS_BAD_FOREIGN_KEY));
+		memberRepository.findByIdAndDeletedAtIsNull(FixedMemberId.FIXED_MEMBER_ID)
+				.orElseThrow(() -> new BusinessException("memberId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
+						ErrorCode.ITM_BUS_BAD_FOREIGN_KEY));
 
 		// DB用に年月を「yyyyMM」に変更
 		String targetYearMonthDB = targetYearMonth.format(YEAR_MONTH_DB_FORMATTER);
@@ -85,11 +85,12 @@ public class ItemService {
 			// ②「DB02_明細.カテゴリID = DB03_カテゴリマスタ.カテゴリ主キー」の条件で
 			// ①に取得したデータに「DB02_明細.カテゴリローカルID」を関連付け（#4）
 			// ※会員IDは固定のものを使用する
-			items = itemRepository.findActiveItemsOverViewWithCategory(FIXED_MEMBER_ID, targetYearMonthDB);
+			items = itemRepository.findActiveItemsOverViewWithCategory(FixedMemberId.FIXED_MEMBER_ID,
+					targetYearMonthDB);
 
 			// この際、検索結果件数と「当月支払金額」の合計も算出（#3）
 			if (items.size() > 0) {
-				totalAmount = itemRepository.sumUsageAmount(FIXED_MEMBER_ID, targetYearMonthDB);
+				totalAmount = itemRepository.sumUsageAmount(FixedMemberId.FIXED_MEMBER_ID, targetYearMonthDB);
 			}
 		} catch (DataIntegrityViolationException e) {
 			// 想定外の永続化エラーは自前の500用例外に正規化して再投げ
@@ -117,21 +118,22 @@ public class ItemService {
 		// ただし直前のチェックで1つでもエラーがあればDBへの取り込みを行わずレスポンス返却に移る
 		if (errors.isEmpty()) {
 			// 会員IDの存在チェック（FK制約違反回避のため事前にチェック）
-			memberRepository.findByIdAndDeletedAtIsNull(FIXED_MEMBER_ID)
+			memberRepository.findByIdAndDeletedAtIsNull(FixedMemberId.FIXED_MEMBER_ID)
 					.orElseThrow(() -> new BusinessException("memberId", ErrorMessage.ITM_BAD_FOREIGN_KEY,
 							ErrorCode.ITM_BUS_BAD_FOREIGN_KEY));
 			// 未設定のカテゴリIDのPKを取得、なければ作成する
 			CategoryEntity unknownCategoryEntity = categoryRepository
-					.findByIdAndMemberIdAndDeletedAtIsNull(CategoryId.UNKNOWN, FIXED_MEMBER_ID).orElseGet(() -> {
+					.findByIdAndMemberIdAndDeletedAtIsNull(CategoryId.UNKNOWN, FixedMemberId.FIXED_MEMBER_ID)
+					.orElseGet(() -> {
 						// 未設定カテゴリがなければ作成
-						return categoryRepository.save(getUnknownCategoryEntity(FIXED_MEMBER_ID));
+						return categoryRepository.save(getUnknownCategoryEntity(FixedMemberId.FIXED_MEMBER_ID));
 					});
 			// 未設定カテゴリのPKを取得
 			long unknownCategoryId = unknownCategoryEntity.getPk();
 			// CSVの各行データをEntityに変換しDBへ登録
 			for (CsvRow csvRow : row) {
 				// CSV行データをEntityに変換
-				ItemEntity entity = toEntity(csvRow, unknownCategoryId, targetYearMonth, FIXED_MEMBER_ID);
+				ItemEntity entity = toEntity(csvRow, unknownCategoryId, targetYearMonth, FixedMemberId.FIXED_MEMBER_ID);
 				// DB登録
 				try {
 					// CSVの各行データをEntityに変換しDBへ登録
