@@ -1,10 +1,13 @@
 package com.example.minimal.member;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+
 public interface MemberRepository extends JpaRepository<MemberEntity, String> {
-  boolean existsByCodeAndDeletedAtIsNull(String code);
-  Optional<MemberEntity> findByIdAndDeletedAtIsNull(String id);
+	// コードで存在確認
+	boolean existsByCodeAndDeletedAtIsNull(String code);
+
+	// IDで取得（論理削除されていないもの）
+	Optional<MemberEntity> findByIdAndDeletedAtIsNull(String id);
 }
