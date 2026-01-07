@@ -19,7 +19,11 @@ public class ItemFieldP202ErrorCodeMapper implements FieldErrorCodeMapper {
 			return false;
 		}
 		String field = error.getField();
-		return Fields.yearMonth.equals(field) || Fields.totalNum.equals(field) || Fields.updateItemList.equals(field);
+		if (field == null) {
+			return false;
+		}
+		return Fields.yearMonth.equals(field) || Fields.totalNum.equals(field) || Fields.updateItemList.equals(field)
+				|| field.contains(Fields.updateItemList);
 	}
 
 	@Override
