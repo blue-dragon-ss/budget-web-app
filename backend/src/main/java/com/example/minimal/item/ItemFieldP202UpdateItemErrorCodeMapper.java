@@ -19,6 +19,9 @@ public class ItemFieldP202UpdateItemErrorCodeMapper implements FieldErrorCodeMap
 			return false;
 		}
 		String field = error.getField();
+		if (field != null) {
+			field = field.replaceAll("^.*\\.", "");
+		}
 		return Fields.itemId.equals(field) || Fields.date.equals(field) || Fields.title.equals(field)
 				|| Fields.payer.equals(field) || Fields.paymentMethod.equals(field) || Fields.usageAmount.equals(field)
 				|| Fields.feeAmount.equals(field) || Fields.totalAmount.equals(field)

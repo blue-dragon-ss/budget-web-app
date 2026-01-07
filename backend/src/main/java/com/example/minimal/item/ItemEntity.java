@@ -80,7 +80,7 @@ public class ItemEntity {
 
 	@Setter
 	@Column(name = "is_new_item", nullable = false)
-	private boolean isNewItem; // 新規
+	private Boolean isNewItem; // 新規
 
 	@Setter
 	@Column(name = "category_id", nullable = false)

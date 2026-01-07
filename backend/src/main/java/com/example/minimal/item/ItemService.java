@@ -200,7 +200,7 @@ public class ItemService {
 			}
 			// 新規サイン
 			if (updateItem.getIsNewItem() != null) {
-				i.setNewItem(updateItem.getIsNewItem().booleanValue());
+				i.setIsNewItem(updateItem.getIsNewItem());
 				isUpdateColumnExist = true;
 			}
 			// カテゴリID
@@ -248,7 +248,7 @@ public class ItemService {
 				result = itemRepository.patchUpdate(FixedMemberId.FIXED_MEMBER_ID, i.getPublicId(), targetYearMonthDB,
 						i.getUsageDate(), i.getTitle(), i.getPayer(), i.getPaymentMethod(), i.getUsageAmount(),
 						i.getFeeAmount(), i.getTotalAmount(), i.getCurrentMonthPaid(), i.getNextMonthPaid(),
-						i.isNewItem(), i.getCategoryId(), i.getMemo(), Instant.now(), FixedMemberId.FIXED_MEMBER_ID);
+						i.getIsNewItem(), i.getCategoryId(), i.getMemo(), Instant.now(), FixedMemberId.FIXED_MEMBER_ID);
 			} catch (DataIntegrityViolationException e) {
 				// 送信に失敗したら送信前の状態にロールバックさせ、エラーを投げる
 				if (SQLUtils.isUniqueViolation(e, UQ_ITEMS_CODE_ACTIVE)) {
@@ -360,7 +360,7 @@ public class ItemService {
 		entity.setTotalAmount(row.totalAmount());
 		entity.setCurrentMonthPaid(row.currentMonthPaid());
 		entity.setNextMonthPaid(row.nextMonthPaid());
-		entity.setNewItem(row.isNewItems());
+		entity.setIsNewItem(row.isNewItems());
 		entity.setCategoryId(categoryId);
 		entity.setMemo(row.memo());
 
