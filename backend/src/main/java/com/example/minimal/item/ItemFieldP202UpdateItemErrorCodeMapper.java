@@ -35,6 +35,9 @@ public class ItemFieldP202UpdateItemErrorCodeMapper implements FieldErrorCodeMap
 			return Optional.empty();
 		}
 		String field = error.getField();
+		if (field != null) {
+			field = field.replaceAll("^.*\\.", "");
+		}
 		String[] constraintCodes = error.getCodes();
 		if (Fields.itemId.equals(field)) {
 			return resolveItemId(constraintCodes);

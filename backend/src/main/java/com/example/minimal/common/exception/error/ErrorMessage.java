@@ -46,7 +46,7 @@ public final class ErrorMessage {
 	public static final String VAL_PAYER_BLANK_PATTERN = "利用者には文字を設定してください。";
 	public static final String VAL_PAYER_SIZE = "利用者は" + ValidationConstraints.PAYER_MAX + "文字以内で指定してください。";
 	public static final String VAL_PAYMENT_METHOD_BLANK_PATTERN = "支払方法には文字を設定してください。";
-	public static final String VAL_PAYMENT_METHOD_SIZE = "利用者は" + ValidationConstraints.PAYMENT_METHOD_MAX
+	public static final String VAL_PAYMENT_METHOD_SIZE = "支払方法は" + ValidationConstraints.PAYMENT_METHOD_MAX
 			+ "文字以内で指定してください。";
 	public static final String VAL_USAGE_AMOUNT_RANGE = "利用金額は" + ValidationConstraints.MIN_BIGDECIMAL_VALUE_STRING
 			+ "以上で、整数部" + ValidationConstraints.BIGDECIMAL_INTEGER + "桁・少数部" + ValidationConstraints.BIGDECIMAL_FRACTION

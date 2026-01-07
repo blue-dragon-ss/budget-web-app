@@ -45,7 +45,6 @@ public final class ErrorCode {
 	public static final String ITM_VAL_PATTERN_ITEM_FILE = "VAL-22004";
 	public static final String ITM_VAL_MAX_SIZE_ITEM_FILE = "VAL-22006";
 	public static final String ITM_VAL_NULL_BYTE_ITEM_FILE = "VAL-22007";
-	public static final String ITM_VAL_MAX_SIZE_MEMO = "VAL-21902";
 
 	// ITEM: BUSINESS CONFLICT
 	public static final String ITM_BUS_UPDATE_LIST_SIZE_NOT_MATCH = "BUS-20201";
