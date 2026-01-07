@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -82,4 +83,9 @@ public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
 			@Param("isNewItem") Boolean isNewItem, @Param("categoryId") Long categoryId, @Param("memo") String memo,
 
 			@Param("updatedAt") Instant updatedAt, @Param("updatedBy") String updatedBy);
+
+	// 公開IDと会員IDから明細データを取得する
+	Optional<ItemEntity> findByPublicIdAndMemberIdAndBillingYmAndDeletedAtIsNull(
+			@Param("memberId") String memberId, @Param("publicId") String publicId,
+			@Param("billingYm") String billingYm);
 }

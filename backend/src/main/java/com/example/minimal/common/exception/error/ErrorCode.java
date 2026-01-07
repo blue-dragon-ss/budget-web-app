@@ -51,6 +51,7 @@ public final class ErrorCode {
 	public static final String ITM_BUS_UPDATE_COLUMN_NOT_EXIST = "BUS-20202";
 	public static final String ITM_BUS_ALL_AMOUNT_NOT_EXIST = "BUS-20203";
 	public static final String ITM_BUS_CATEGORY_ID_NOT_EXIST = "BUS-20204";
+	public static final String ITM_BUS_ITEM_NOT_EXIST = "BUS-20205";
 	public static final String ITM_BUS_CSV_HEADER = "BUS-20301";
 	public static final String ITM_BUS_CSV_NO_DATA = "BUS-20302";
 	public static final String ITM_BUS_CSV_SECOND_LINE_INVALID_DATA = "BUS-20303";

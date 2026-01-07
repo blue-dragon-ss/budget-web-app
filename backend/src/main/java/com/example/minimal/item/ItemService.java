@@ -1,7 +1,6 @@
 package com.example.minimal.item;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -241,14 +240,58 @@ public class ItemService {
 		// ※会員IDは固定のものを使用する
 		for (ItemEntity i : uiel) {
 			// 結果格納
-			int result = 0;
+			boolean result = false;
 			// DB登録
 			try {
+				// 更新元の明細データを取得
+				ItemEntity originalItem = itemRepository
+						.findByPublicIdAndMemberIdAndBillingYmAndDeletedAtIsNull(FixedMemberId.FIXED_MEMBER_ID,
+								i.getPublicId(), targetYearMonthDB)
+						.orElseThrow(() -> new BusinessException(null, ErrorMessage.ITM_NOT_EXIST_ITEM,
+								ErrorCode.ITM_BUS_ITEM_NOT_EXIST));
+				// 更新データのマージ
+				if (i.getUsageDate() != null) {
+					originalItem.setUsageDate(i.getUsageDate());
+				}
+				if (i.getTitle() != null) {
+					originalItem.setTitle(i.getTitle());
+				}
+				if (i.getPayer() != null) {
+					originalItem.setPayer(i.getPayer());
+				}
+				if (i.getPaymentMethod() != null) {
+					originalItem.setPaymentMethod(i.getPaymentMethod());
+				}
+				if (i.getUsageAmount() != null) {
+					originalItem.setUsageAmount(i.getUsageAmount());
+				}
+				if (i.getFeeAmount() != null) {
+					originalItem.setFeeAmount(i.getFeeAmount());
+				}
+				if (i.getTotalAmount() != null) {
+					originalItem.setCurrentMonthPaid(i.getCurrentMonthPaid());
+				}
+				if (i.getNextMonthPaid() != null) {
+					originalItem.setNextMonthPaid(i.getNextMonthPaid());
+				}
+				if (i.getIsNewItem() != null) {
+					originalItem.setIsNewItem(i.getIsNewItem());
+				}
+				if (i.getCategoryId() != null) {
+					originalItem.setCategoryId(i.getCategoryId());
+				}
+				if (i.getMemo() != null) {
+					originalItem.setMemo(i.getMemo());
+				}
+				// 更新者格納
+				originalItem.setUpdatedBy(FixedMemberId.FIXED_MEMBER_ID);
+
 				// 各更新データをDBへ登録
-				result = itemRepository.patchUpdate(FixedMemberId.FIXED_MEMBER_ID, i.getPublicId(), targetYearMonthDB,
-						i.getUsageDate(), i.getTitle(), i.getPayer(), i.getPaymentMethod(), i.getUsageAmount(),
-						i.getFeeAmount(), i.getTotalAmount(), i.getCurrentMonthPaid(), i.getNextMonthPaid(),
-						i.getIsNewItem(), i.getCategoryId(), i.getMemo(), Instant.now(), FixedMemberId.FIXED_MEMBER_ID);
+				if (itemRepository.save(originalItem) != null) {
+					result = true;
+				} else {
+					result = false;
+				}
 			} catch (DataIntegrityViolationException e) {
 				// 送信に失敗したら送信前の状態にロールバックさせ、エラーを投げる
 				if (SQLUtils.isUniqueViolation(e, UQ_ITEMS_CODE_ACTIVE)) {
@@ -265,8 +308,8 @@ public class ItemService {
 				throw new UnexpectedPersistenceException(null, ErrorMessage.COM_SERVER_ERROR_MESSAGE,
 						ErrorCode.COM_SERVER_ERROR, e);
 			}
-			// ②更新件数として「1」が返ってきたら更新成功：レスポンス「結果」=true
-			// 「0」が返ってきたら更新失敗：レスポンス「結果」=false メッセージ="NOT_FOUND"（#2）
+			// 更新成功：レスポンス「結果」=true
+			// 更新失敗：レスポンス「結果」=false メッセージ="NOT_FOUND"（#2）
 			updateResults.add(toP202ResposneUpdateResult(i.getPublicId(), result));
 		}
 		return toP202Response(targetYearMonth.toString(), updateResults);
@@ -415,10 +458,10 @@ public class ItemService {
 	}
 
 	// 明細更新結果の1件をレスポンスへ変換
-	private static P202ResponseUpdateResult toP202ResposneUpdateResult(String itemId, int result) {
+	private static P202ResponseUpdateResult toP202ResposneUpdateResult(String itemId, boolean result) {
 		P202ResponseUpdateResult res = new P202ResponseUpdateResult();
 		res.setItemId(itemId);
-		if (result == 1) {
+		if (result) {
 			res.setStatus(true);
 		} else {
 			// 0を想定

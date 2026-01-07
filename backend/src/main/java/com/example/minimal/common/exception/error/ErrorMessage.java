@@ -86,6 +86,7 @@ public final class ErrorMessage {
 	public static final String ITM_NOT_EXIST_UPDATE_COLUMN = "更新する要素が1つもありません。";
 	public static final String ITM_NOT_EXIST_ALL_AMOUNT = "利用金額、支払手数料、支払総額を更新するなら全部の値が必要です。";
 	public static final String ITM_NOT_EXIST_CATEGORY_ID = "指定されたカテゴリIDのカテゴリがありません。";
+	public static final String ITM_NOT_EXIST_ITEM = "更新先の明細データがありません。";
 
 	// Item CSV Business
 	public static final String ITM_CSV_HEADER = "明細CSVのヘッダーが正しくありません。";
