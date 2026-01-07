@@ -185,8 +185,8 @@ public class ItemService {
 				isUpdateColumnExist = true;
 			} else if (ua != null || fa != null || ta != null) {
 				// 全部はないのに少なくとも1つある場合はエラー
-				throw new BusinessException(null, ErrorMessage.ITM_NOT_EXIST_ALL_AMOUNT,
-						ErrorCode.ITM_BUS_ALL_AMOUNT_NOT_EXIST);
+				throw new BusinessException("usageAmount or feeAmount or totalAmount",
+						ErrorMessage.ITM_NOT_EXIST_ALL_AMOUNT, ErrorCode.ITM_BUS_ALL_AMOUNT_NOT_EXIST);
 			}
 			// 当月支払金額
 			if (updateItem.getCurrentMonthPaid() != null) {

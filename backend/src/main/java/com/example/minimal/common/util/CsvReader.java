@@ -186,7 +186,7 @@ public class CsvReader {
 												lastRow.nextMonthPaid(), lastRow.isNewItems(), title));
 							} else {
 								// エラーの場合、レスポンスへエラー内容を次の行数として格納し、失敗件数を1増やして処理継続（#4）
-								errors.add(new CsvParseError((int) lineNo, ErrorCode.ITM_VAL_CSV_ERROR_TITLE,
+								errors.add(new CsvParseError((int) lineNo, ErrorCode.ITM_VAL_CSV_ERROR_EXCHANGE,
 										ErrorMessage.ITM_CSV_EXCHANGE_EMPTY_OR_OVER));
 							}
 							continue; // 次の行へ

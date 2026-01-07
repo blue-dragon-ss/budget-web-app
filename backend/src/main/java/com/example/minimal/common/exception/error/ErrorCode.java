@@ -67,6 +67,7 @@ public final class ErrorCode {
 	public static final String ITM_VAL_CSV_ERROR_TOTAL_AMOUNT = "VAL-21499";
 	public static final String ITM_VAL_CSV_ERROR_CURRENT_MONTH_PAID = "VAL-21599";
 	public static final String ITM_VAL_CSV_ERROR_NEXT_MONTH_PAID = "VAL-21699";
+	public static final String ITM_VAL_CSV_ERROR_EXCHANGE = "VAL-20999";
 
 	// IDEMPOTENCY
 	public static final String IDE_VAL_DEAFALT_ERROR = "IDEMP-0000";
