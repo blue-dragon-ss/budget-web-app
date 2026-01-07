@@ -19,6 +19,28 @@ public final class ErrorCode {
 	public static final String ITM_VAL_REQUIRED_YEAR_MONTH = "VAL-20101";
 	public static final String ITM_VAL_SIZE_YEAR_MONTH = "VAL-20102";
 	public static final String ITM_VAL_PATTERN_YEAR_MONTH = "VAL-20104";
+	public static final String ITM_VAL_SIZE_TOTAL_NUM = "VAL-20403";
+	public static final String ITM_VAL_REQUIRED_UPDATE_ITEM_LIST = "VAL-20501";
+	public static final String ITM_VAL_SIZE_UPDATE_ITEM_LIST = "VAL-20502";
+	public static final String ITM_VAL_REQUIRED_UPDATE_ITEM = "VAL-20601";
+	public static final String ITM_VAL_REQUIRED_ITEM_ID = "VAL-20701";
+	public static final String ITM_VAL_SIZE_ITEM_ID = "VAL-20702";
+	public static final String ITM_VAL_SIZE_DATE = "VAL-20802";
+	public static final String ITM_VAL_RANGE_DATE = "VAL-20803";
+	public static final String ITM_VAL_PATTERN_DATE = "VAL-20804";
+	public static final String ITM_VAL_SIZE_TITLE = "VAL-20902";
+	public static final String ITM_VAL_PATTERN_TITLE = "VAL-20904";
+	public static final String ITM_VAL_SIZE_PAYER = "VAL-21002";
+	public static final String ITM_VAL_PATTERN_PAYER = "VAL-21004";
+	public static final String ITM_VAL_SIZE_PAYMENT_METHOD = "VAL-21102";
+	public static final String ITM_VAL_PATTERN_PAYMENT_METHOD = "VAL-21104";
+	public static final String ITM_VAL_RANGE_USAGE_AMOUNT = "VAL-21203";
+	public static final String ITM_VAL_RANGE_FEE_AMOUNT = "VAL-21303";
+	public static final String ITM_VAL_RANGE_TOTAL_AMOUNT = "VAL-21403";
+	public static final String ITM_VAL_RANGE_CURRENT_MONTH_PAID = "VAL-21503";
+	public static final String ITM_VAL_RANGE_NEXT_MONTH_PAID = "VAL-21603";
+	public static final String ITM_VAL_RANGE_CATEGORY_ID = "VAL-21803";
+	public static final String ITM_VAL_SIZE_MEMO = "VAL-21902";
 	public static final String ITM_VAL_REQUIRED_ITEM_FILE = "VAL-22001";
 	public static final String ITM_VAL_PATTERN_ITEM_FILE = "VAL-22004";
 	public static final String ITM_VAL_MAX_SIZE_ITEM_FILE = "VAL-22006";
@@ -26,6 +48,10 @@ public final class ErrorCode {
 	public static final String ITM_VAL_MAX_SIZE_MEMO = "VAL-21902";
 
 	// ITEM: BUSINESS CONFLICT
+	public static final String ITM_BUS_UPDATE_LIST_SIZE_NOT_MATCH = "BUS-20201";
+	public static final String ITM_BUS_UPDATE_COLUMN_NOT_EXIST = "BUS-20202";
+	public static final String ITM_BUS_ALL_AMOUNT_NOT_EXIST = "BUS-20203";
+	public static final String ITM_BUS_CATEGORY_ID_NOT_EXIST = "BUS-20204";
 	public static final String ITM_BUS_CSV_HEADER = "BUS-20301";
 	public static final String ITM_BUS_CSV_NO_DATA = "BUS-20302";
 	public static final String ITM_BUS_CSV_SECOND_LINE_INVALID_DATA = "BUS-20303";

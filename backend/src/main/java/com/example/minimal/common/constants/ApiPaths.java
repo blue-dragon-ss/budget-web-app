@@ -18,5 +18,6 @@ public final class ApiPaths {
 	// Common actions
 	public static final String CREATE = "/create";
 	public static final String IMPORT_CSV = "/import/csv";
+	public static final String UPDATE = "/update";
 
 }

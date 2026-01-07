@@ -11,7 +11,7 @@ import com.example.minimal.common.exception.error.ErrorCode;
 import com.example.minimal.item.dto.P203Request.Fields;
 
 @Component
-public class ItemFieldErrorCodeMapper implements FieldErrorCodeMapper {
+public class ItemFieldP203ErrorCodeMapper implements FieldErrorCodeMapper {
 
 	@Override
 	public boolean supports(FieldError error) {

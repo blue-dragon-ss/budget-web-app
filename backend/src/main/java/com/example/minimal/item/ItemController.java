@@ -7,6 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +17,8 @@ import com.example.minimal.common.constants.Regexes;
 import com.example.minimal.common.constants.ValidationConstraints;
 import com.example.minimal.common.exception.error.ErrorMessage;
 import com.example.minimal.item.dto.P201Response;
+import com.example.minimal.item.dto.P202Request;
+import com.example.minimal.item.dto.P202Response;
 import com.example.minimal.item.dto.P203Request;
 import com.example.minimal.item.dto.P203Response;
 
@@ -42,6 +45,13 @@ public class ItemController {
 			@Size(min = ValidationConstraints.YEAR_MONTH_LENGTH, max = ValidationConstraints.YEAR_MONTH_LENGTH, message = ErrorMessage.VAL_YEAR_MONTH_SIZE)
 			@Pattern(regexp = Regexes.YEAR_MONTH, message = ErrorMessage.VAL_YEAR_MONTH_PATTERN) String yearMonth) {
 		P201Response res = itemService.getItems(yearMonth);
+		return ResponseEntity.status(HttpStatus.OK).body(res);
+	}
+
+	// 明細更新API
+	@PostMapping(path = ApiPaths.UPDATE)
+	public ResponseEntity<P202Response> update(@Valid @RequestBody P202Request body) {
+		P202Response res = itemService.update(body);
 		return ResponseEntity.status(HttpStatus.OK).body(res);
 	}
 
