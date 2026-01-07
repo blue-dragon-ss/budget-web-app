@@ -18,10 +18,23 @@ public final class ValidationConstraints {
 	public static final int TITLE_MAX = 200;
 	public static final int PAYER_MAX = 100;
 	public static final int PAYMENT_METHOD_MAX = 50;
+	public static final int YEAR_MONTH_DATE_LENGTH = 10; // "yyyy/MM/dd"
+	public static final int MEMO_MAX = 200;
 
 	// Numeric ranges
+	public static final int MIN_UPDATE_TOTAL_NUM = 1;
+	public static final int MAX_UPDATE_TOTAL_NUM = 200;
+	public static final int MIN_CATEGORY_ID = 0;
+	public static final int MAX_CATEGORY_ID = 9999;
 	public static final BigDecimal MIN_BIGDECIMAL_VALUE = new BigDecimal(0);
 	public static final BigDecimal MAX_BIGDECIMAL_VALUE = new BigDecimal(999_999_999L);
+	public static final String MIN_BIGDECIMAL_VALUE_STRING = "0";
+	public static final int BIGDECIMAL_INTEGER = 9;
+	public static final int BIGDECIMAL_FRACTION = 2;
+
+	// List size
+	public static final int MIN_UPDATE_ITEM_LIST_SIZE = 1;
+	public static final int MAX_UPDATE_ITEM_LIST_SIZE = 200;
 
 	// IDs
 	public static final int ULID_LENGTH = 26;
