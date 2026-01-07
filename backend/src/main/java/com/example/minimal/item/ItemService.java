@@ -245,8 +245,8 @@ public class ItemService {
 			try {
 				// 更新元の明細データを取得
 				ItemEntity originalItem = itemRepository
-						.findByPublicIdAndMemberIdAndBillingYmAndDeletedAtIsNull(FixedMemberId.FIXED_MEMBER_ID,
-								i.getPublicId(), targetYearMonthDB)
+						.findByPublicIdAndMemberIdAndBillingYmAndDeletedAtIsNull(i.getPublicId(),
+								FixedMemberId.FIXED_MEMBER_ID, targetYearMonthDB)
 						.orElseThrow(() -> new BusinessException(null, ErrorMessage.ITM_NOT_EXIST_ITEM,
 								ErrorCode.ITM_BUS_ITEM_NOT_EXIST));
 				// 更新データのマージ

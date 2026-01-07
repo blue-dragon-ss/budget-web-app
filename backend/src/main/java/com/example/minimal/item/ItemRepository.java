@@ -86,6 +86,5 @@ public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
 
 	// 公開IDと会員IDから明細データを取得する
 	Optional<ItemEntity> findByPublicIdAndMemberIdAndBillingYmAndDeletedAtIsNull(
-			@Param("memberId") String memberId, @Param("publicId") String publicId,
-			@Param("billingYm") String billingYm);
+			String publicId, String memberId, String billingYm);
 }
