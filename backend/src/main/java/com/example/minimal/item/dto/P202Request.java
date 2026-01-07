@@ -36,5 +36,5 @@ public class P202Request {
 
 	@NotNull(message = ErrorMessage.VAL_UPDATE_ITEM_LIST_NULL)
 	@Size(min = ValidationConstraints.MIN_UPDATE_ITEM_LIST_SIZE, max = ValidationConstraints.MAX_UPDATE_ITEM_LIST_SIZE, message = ErrorMessage.VAL_UPDATE_ITEM_LIST_SIZE)
-	private List<@NotNull(message = ErrorMessage.VAL_UPDATE_ITEM_LIST_NULL) @Valid P202RequestUpdateItem> updateItemList;
+	private List<@NotNull(message = ErrorMessage.VAL_UPDATE_ITEM_NULL) @Valid P202RequestUpdateItem> updateItemList;
 }

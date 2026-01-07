@@ -38,6 +38,9 @@ public class ItemFieldP202ErrorCodeMapper implements FieldErrorCodeMapper {
 		if (Fields.updateItemList.equals(field)) {
 			return resolveUpdateItemList(constraintCodes);
 		}
+		if (field.contains(Fields.updateItemList)) {
+			return resolveUpdateItem(constraintCodes);
+		}
 		return Optional.empty();
 	}
 
@@ -68,6 +71,13 @@ public class ItemFieldP202ErrorCodeMapper implements FieldErrorCodeMapper {
 		}
 		if (containsConstraint(constraints, ValidationConstraintCodes.SIZE)) {
 			return Optional.of(ErrorCode.ITM_VAL_SIZE_UPDATE_ITEM_LIST);
+		}
+		return Optional.empty();
+	}
+
+	private Optional<String> resolveUpdateItem(String[] constraints) {
+		if (containsConstraint(constraints, ValidationConstraintCodes.NOT_NULL)) {
+			return Optional.of(ErrorCode.ITM_VAL_REQUIRED_UPDATE_ITEM);
 		}
 		return Optional.empty();
 	}
