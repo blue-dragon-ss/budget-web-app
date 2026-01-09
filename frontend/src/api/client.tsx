@@ -4,23 +4,24 @@ import { mockUpdateItemsResponse, type P202UpdateItemsResponse } from "../type/P
 import type { P203ItemsCsvImportRequest } from "../type/P203ItemsCsvImportRequest.ts";
 import { mockGetCategoriesResponse, mockGetCategoriesResponseZero, type P301GetCategoriesResponse } from "../type/P301GetCategoriesResponse.ts";
 import { type P203ItemsCsvImportResponse, mockCsvImportResponse } from "../type/P203ItemsCsvImportResponse.ts"
+import { CATEGORY_PATH, COMMAND_PATH } from "../type/ApiPath.ts";
 
 // 開発用モック
-const USE_MOCK_GET_ITEMS_API = true;
-const ERROR_MOCK_GET_ITEMS_API = true;
+const USE_MOCK_GET_ITEMS_API = false;
+const ERROR_MOCK_GET_ITEMS_API = false;
 
-const USE_MOCK_UPDATE_API = true;
-const ERROR_MOCK_UPDATE_API = true;
+const USE_MOCK_UPDATE_API = false;
+const ERROR_MOCK_UPDATE_API = false;
 
-const USE_MOCK_CATEGORY_API = true;
+const USE_MOCK_CATEGORY_API = false;
 const USE_MOCK_CATEGORY_ZERO_API = false;
-const ERROR_MOCK_CATEGORY_API = true;
+const ERROR_MOCK_CATEGORY_API = false;
 
-const USE_MOCK_CSV_IMPORT_API = true;
-const ERROR_MOCK_CSV_IMPORT_API = true;
+const USE_MOCK_CSV_IMPORT_API = false;
+const ERROR_MOCK_CSV_IMPORT_API = false;
 
 export async function getMembers() {
-  const res = await fetch("/api/members");
+  const res = await fetch(CATEGORY_PATH.MEMBERS_BASE_PATH);
   if (!res.ok) {
     throw new Error("メンバー取得に失敗しました");
   }
@@ -41,8 +42,8 @@ export async function getItems(yearMonth? : string) {
   }
 
   const apiPath = yearMonth 
-    ? `/api/v1/items?yearMonth=${encodeURIComponent(yearMonth)}`
-    : "/api/v1/items";
+    ? CATEGORY_PATH.ITEMS_BASE_PATH + `?yearMonth=${encodeURIComponent(yearMonth)}`
+    : CATEGORY_PATH.ITEMS_BASE_PATH;
 
   const res = await fetch(apiPath, {
     method: "GET",
@@ -71,7 +72,7 @@ export async function updateItems(request: P202UpdateItemsRequest) {
       throw new Error("明細更新に失敗しました");
   }
 
-  const res = await fetch("/api/v1/items/update", {
+  const res = await fetch(CATEGORY_PATH.ITEMS_BASE_PATH + COMMAND_PATH.UPDATE_PATH, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -99,13 +100,16 @@ export async function importItemsfromCsv(request: P203ItemsCsvImportRequest) {
       throw new Error("読込に失敗しました。時間を空けてもう一度試してください");
   }
 
-  const res = await fetch("/api/v1/items/import/csv", {
+  const form = new FormData();
+  form.append("yearMonth", request.yearMonth);
+  form.append("itemFile", request.itemFile);
+
+  const res = await fetch(CATEGORY_PATH.ITEMS_BASE_PATH + COMMAND_PATH.IMPORT_CSV_PATH, {
     method: "POST",
     headers: {
-      "Content-Type": "multipart/form-data",
       Accept: "application/json",
     },
-    body: JSON.stringify(request),
+    body: form,
   });
 
   if (!res.ok) {
@@ -129,7 +133,7 @@ export async function getCategories() {
       throw new Error("明細カテゴリ取得に失敗しました。ページを更新してください");
   }
 
-  const res = await fetch("/api/v1/categories", {
+  const res = await fetch(CATEGORY_PATH.CATEGORIES_BASE_PATH, {
     method: "GET",
     headers: {
       Accept: "application/json",

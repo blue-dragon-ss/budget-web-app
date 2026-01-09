@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // フロントからの /api へのアクセスを、バックエンド (localhost:8080) へ転送する
+      // dev only: フロントからの /api へのアクセスを、バックエンド (localhost:8080) へ転送する
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,
