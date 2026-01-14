@@ -119,7 +119,7 @@ public class ItemService {
 		// 成功時：登録データを返却（traceId含む）
 		// 上記レスポンス仕様の形に整形
 		// 失敗時：例外コード変換し共通フォーマットで応答
-		return toP201Response(yearMonth, items, totalAmount.longValue());
+		return toP201Response(targetYearMonth.toString(), items, totalAmount.longValue());
 	}
 
 	@Transactional
