@@ -9,7 +9,7 @@ export type P201GetItemsResponse = {
   // 合計支払金額
   totalAmount : number;
   // 明細リスト
-  imtizedList : P201GetItemsResponseItem[] | null;
+  itemizedList : P201GetItemsResponseItem[] | null;
 };
 
 /**
@@ -82,8 +82,8 @@ function toTopItemViewModels(resList: P201GetItemsResponseItem[]): TopItemViewMo
  * @returns 明細リスト
  */
 export function toTopItemViewModelFromApiResponse(response: P201GetItemsResponse): TopItemViewModel[] {
-  if(response.imtizedList != null){
-    return toTopItemViewModels(response.imtizedList);
+  if(response.itemizedList != null){
+    return toTopItemViewModels(response.itemizedList);
   } else {
     return [];
   }
@@ -120,14 +120,14 @@ export function mockGetItemsResponse(yearMonth?: string) : P201GetItemsResponse 
       yearMonth: "2025-11",
       totalNum: 0,
       totalAmount: 0,
-      imtizedList: null,
+      itemizedList: null,
     }
   } else if (yearMonth === "2026-01"){
     return {
       yearMonth: "2026-01",
       totalNum: 2,
       totalAmount: 2000,
-      imtizedList: [
+      itemizedList: [
         {itemId: "5", date: "2025/12/01", title: "明細タイトル11", categoryId: 1, memo: "メモ1", amount: 1000},
         {itemId: "6", date: "2025/12/02", title: "明細タイトル22", categoryId: 2, memo: "メモ2", amount: 1000},
       ]
@@ -137,7 +137,7 @@ export function mockGetItemsResponse(yearMonth?: string) : P201GetItemsResponse 
       yearMonth: "2026-02",
       totalNum: 10,
       totalAmount: 10000,
-      imtizedList: [
+      itemizedList: [
         {itemId: "11", date: "2026/01/01", title: "明細タイトル11", categoryId: 1, memo: "メモ1", amount: 1000},
         {itemId: "12", date: "2026/01/02", title: "明細タイトル12", categoryId: 2, memo: "メモ2", amount: 1000},
         {itemId: "13", date: "2026/01/03", title: "明細タイトル13", categoryId: 3, memo: "メモ1", amount: 1000},
@@ -155,7 +155,7 @@ export function mockGetItemsResponse(yearMonth?: string) : P201GetItemsResponse 
       yearMonth: "2026-03",
       totalNum: 30,
       totalAmount: 129000000,
-      imtizedList: [
+      itemizedList: [
         {itemId: "11", date: "2026/02/01", title: "明細タイトル21", categoryId: 1, memo: "メモ1", amount: 100000},
         {itemId: "12", date: "2026/02/02", title: "明細タイトル22", categoryId: 2, memo: "メモ2", amount: 100000},
         {itemId: "13", date: "2026/02/03", title: "明細タイトル23", categoryId: 3, memo: "メモ1", amount: 100000},
@@ -193,7 +193,7 @@ export function mockGetItemsResponse(yearMonth?: string) : P201GetItemsResponse 
       yearMonth: "2025-12",
       totalNum: 7,
       totalAmount: 80220,
-      imtizedList: [
+      itemizedList: [
         {itemId: "1", date: "2025/11/01", title: "湖池屋 ポテチのりしお", categoryId: 2, memo: "安定の味", amount: 120},
         {itemId: "2", date: "2025/11/02", title: "匠 麻婆豆腐", categoryId: 1, memo: "しびれる辛さが病みつき", amount: 4000},
         {itemId: "3", date: "2025/11/03", title: "クアアイナ ハンバーガー", categoryId: 1, memo: "美味しいけど高い", amount: 2000},

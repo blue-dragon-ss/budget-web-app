@@ -97,6 +97,11 @@ function Top() {
       try {
         const response = await importItemsfromCsv(toCsvImportRequestFromTop(yearMonth, file));
         setCsvImportResult(response);
+        // Csv読込が正常終了していたら明細一覧を取得する
+        const errorList = response?.errors;
+        if(errorList === null || errorList === undefined) {
+          fetchGetItems(targetYearMonth ? targetYearMonth : undefined);
+        }
       } catch (e: unknown) {
         // 203_明細CSV読込APIエラーレスポンス
         if (e instanceof Error) {
