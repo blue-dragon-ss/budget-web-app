@@ -76,7 +76,13 @@ public class ItemService {
 	public P201Response getItems(String yearMonth) {
 		// 3.URLパラメータの「年月」を「-」で分割（#1）
 		// ①バリデーションチェック（範囲）
-		YearMonth targetYearMonth = YearMonth.parse(yearMonth, YEAR_MONTH_FORMATTER);
+		YearMonth targetYearMonth;
+		if (yearMonth != null) {
+			targetYearMonth = YearMonth.parse(yearMonth, YEAR_MONTH_FORMATTER);
+		} else {
+			// リクエストパラメータがnullなら現在の年月を設定する
+			targetYearMonth = YearMonth.now();
+		}
 
 		// 会員IDの存在チェック（FK制約違反回避のため事前にチェック）
 		memberRepository.findByIdAndDeletedAtIsNull(FixedMemberId.FIXED_MEMBER_ID)
@@ -113,7 +119,7 @@ public class ItemService {
 		// 成功時：登録データを返却（traceId含む）
 		// 上記レスポンス仕様の形に整形
 		// 失敗時：例外コード変換し共通フォーマットで応答
-		return toP201Response(yearMonth, items, totalAmount.longValue());
+		return toP201Response(targetYearMonth.toString(), items, totalAmount.longValue());
 	}
 
 	@Transactional

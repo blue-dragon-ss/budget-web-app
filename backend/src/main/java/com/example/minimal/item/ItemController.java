@@ -23,7 +23,6 @@ import com.example.minimal.item.dto.P203Request;
 import com.example.minimal.item.dto.P203Response;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -41,7 +40,7 @@ public class ItemController {
 	// 明細一覧取得
 	@GetMapping
 	public ResponseEntity<P201Response> getItems(
-			@RequestParam("yearMonth") @NotBlank(message = ErrorMessage.VAL_YEAR_MONTH_NOT_BLANK)
+			@RequestParam(name = "yearMonth", required = false)
 			@Size(min = ValidationConstraints.YEAR_MONTH_LENGTH, max = ValidationConstraints.YEAR_MONTH_LENGTH, message = ErrorMessage.VAL_YEAR_MONTH_SIZE)
 			@Pattern(regexp = Regexes.YEAR_MONTH, message = ErrorMessage.VAL_YEAR_MONTH_PATTERN) String yearMonth) {
 		P201Response res = itemService.getItems(yearMonth);
