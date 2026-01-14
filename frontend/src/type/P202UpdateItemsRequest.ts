@@ -7,7 +7,7 @@ export type P202UpdateItemsRequest = {
     // 更新件数
     totalNum : number;
     // 更新リスト
-    updateList : P202UpdateItemsRequestItem[];
+    updateItemList : P202UpdateItemsRequestItem[];
 };
 
 export type P202UpdateItemsRequestItem = {
@@ -82,8 +82,8 @@ function toTopUpdateItems(resList: P201GetItemsResponseItem[]): TopUpdateItem[] 
  * @returns 明細リスト
  */
 export function toTopUpdateItemsFromApiResponse(response: P201GetItemsResponse): TopUpdateItem[] {
-  if(response.imtizedList != null){
-    return toTopUpdateItems(response.imtizedList);
+  if(response.itemizedList != null){
+    return toTopUpdateItems(response.itemizedList);
   } else {
     return [];
   }
@@ -122,6 +122,6 @@ export function toUpdateItemsRequestFromTop(yearMonth: YearMonth, patchList: Top
   return {
     yearMonth: toApiString(yearMonth),
     totalNum: patchList.length,
-    updateList: updateList,
+    updateItemList: updateList,
   }
 }
