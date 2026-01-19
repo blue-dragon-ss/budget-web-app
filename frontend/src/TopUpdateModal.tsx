@@ -1,5 +1,4 @@
 import { useEffect, useRef} from "react";
-import "./TopUpdateModal.css"
 
 type Props = {
     open: boolean;
@@ -49,11 +48,30 @@ export const TopUpdateModal = ({open, updateNum, onClose, onUpdate}: Props) => {
     };
 
     return (
-        <dialog ref={topUpdateModalRef} closedby="none">
-            <h3>更新確認</h3>
-            <p>{updateNum} 件を更新します。よろしいですか？</p>
-            <button id="updateCancel" onClick={handleCancelClick}>キャンセル</button>
-            <button autoFocus id="updateOk" onClick={onUpdate}>更新確定</button>
+        <dialog
+            ref={topUpdateModalRef}
+            closedby="none"
+            className="modal updateModal"
+        >
+            <h3 className="modal__title">更新確認</h3>
+            <p className="modal__text">{updateNum} 件を更新します。よろしいですか？</p>
+            <div className="modal__actions modal__actions--row">
+                <button
+                    id="updateCancel"
+                    className="modal__btn modal__btn--secondary"
+                    onClick={handleCancelClick}
+                >
+                    キャンセル
+                </button>
+                <button
+                    id="updateOk"
+                    className="modal__btn modal__btn--primary"
+                    autoFocus
+                    onClick={onUpdate}
+                >
+                    更新確定
+                </button>
+            </div>
         </dialog>
     )
 }

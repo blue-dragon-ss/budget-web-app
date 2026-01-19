@@ -1,42 +1,721 @@
-#root {
+/* =========================
+   画面全体レイアウト
+   ========================= */
+
+.topPage {
+  height: 100vh;           /* 画面内で完結させる */
+  overflow: hidden;        /* windowスクロールを止める */
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-1);
+}
+
+/* テーブル領域だけが伸び縮みしてスクロールを受け持つ */
+.topPage__tableArea {
+  flex: 1 1 auto;
+  min-height: 0;           /* これがないと overflow が効きにくい */
+  display: flex;
+}
+
+/* TopHeader 用 */
+/* ヘッダーは上に固定される（scrollは下側だけ） */
+.topHeader {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  width: 100%;
   max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  margin: 0 auto;          /* もともと margin があるので上書き */
+  flex: 0 0 auto;
+}
+
+/* 追加: ヘッダー上段のレイアウト（左:タイトル / 中央:年月+サマリー / 右:ボタン縦並び） */
+.topHeader__layout {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; /* ここを変更 */
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "title month actions"
+    ".     summary actions";
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  align-items: start;
+}
+
+/* 変更: タイトルを左上に小さく（既存の中央・大きめを上書き） */
+.topHeader__title {
+  grid-area: title;
+  margin: 0;
+  text-align: left;
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* 変更: 年月行を中央上に配置（h2のデフォルトmarginが原因で崩れるので潰す） */
+.topHeader__monthRow {
+  grid-area: month;
+  line-height: 1.1;
+  margin: 0;                    /* ここが重要 */
+  display: flex;                /* ボタン＋年月を横並び */
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  justify-self: center; /* 追加 */
+}
+
+/* 年月だけを大きくする */
+.topHeader__monthLabel {
+  font-size: 32px;   /* 好みに合わせて 22〜28px で調整 */
+  font-weight: 800;
+  padding: 0 12px;
+  line-height: 1.2;
+}
+
+.topHeader__monthBtn {
+  min-width: 72px;
+}
+
+/* 追加: サマリー領域（中央下） */
+.topHeader__summaryArea {
+  grid-area: summary;
+  text-align: center;
+  justify-self: center; /* 追加 */
+}
+
+.topHeader__summary {
+  margin: 0;                    /* ここを 18px -> 0 に */
+  margin-top: 0px;     /* ここを固定して調整 */
+  line-height: 1.15;
+  display: inline-flex;  /* flex→inline-flex */
+  justify-content: center;
+  align-items: baseline;
+  gap: 0px; 
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+
+/* 件数の数字 */
+.topHeader__summaryNum {
+  color: #111827;
+  font-weight: 900;
+  font-size: 20px;
+}
+
+.topHeader__summaryCount {
+  padding-right: 12px;
+  margin-right: 12px;
+  border-right: 1px solid #e5e7eb; /* 仕切り線 */
+}
+
+.topHeader__summaryAmount {
+  color: #111827;
+  font-weight: 900;
+  font-size: 20px;
+}
+
+.topHeader__notice {
+  margin: var(--space-1) 0 0 0;
+  text-align: center;
+  font-size: var(--text-md);
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+/* 追加: 右上の操作ボタンを縦並びに */
+.topHeader__actionsStack {
+  grid-area: actions;
+  width: 112px;          /* 右列の固定幅はここで持つ */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-self: end;
+  align-self: start;
+}
+
+.topHeader__actionsStack .btn {
+  width: 100%;
+  height: 34px;    /* 既存のbtnが36〜40なら少し詰まる */
+  padding: 0 10px; /* 横も少し詰める */
+}
+
+/* 共通：非活性（disabled） */
+.btn:disabled {
+  opacity: 1;                 /* 既定の薄さを使わず、色で表現する */
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Primary（更新確定）：活性 */
+.btn.btn-primary:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Primary：非活性（少し薄い青） */
+.btn.btn-primary:disabled {
+  background: #93c5fd;
+  border-color: #93c5fd;
+  color: #ffffff;
+}
+
+/* Ghost（変更リセット）：活性 */
+.btn.btn-ghost:not(:disabled) {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #374151;
+}
+
+/* Ghost：非活性 */
+.btn.btn-ghost:disabled {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+}
+
+.topHeader__filters {
+  margin-top: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.topHeader__filtersLabel {
+  font-size: var(--text-md);
+  font-weight: 700;
+  margin-bottom: var(--space-1);
+}
+
+.topHeader__chips {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.chip {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: var(--text-md);
+  cursor: pointer;
+}
+
+/* 追加: 選択中のチップ */
+.chip.is-active {
+  border-color: rgba(37, 99, 235, 0.55);
+  background: rgba(37, 99, 235, 0.12);
+  color: #111827;
+  font-weight: 700;
+}
+
+.chip:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* 追加: ボタン・チップのホバー枠（青） */
+.btn:hover:not(:disabled),
+.chip:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.20);
+}
+
+/* キーボード操作時のフォーカスも同じ */
+.btn:focus-visible,
+.chip:focus-visible {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.20);
+}
+
+/* =========================
+   変更リセット（btn-ghost）は青枠を出さない
+   ========================= */
+
+/* hover の青枠を無効化 */
+.btn.btn-ghost:hover:not(:disabled) {
+  border-color: #cbd5e1; /* 元の枠色を維持 */
+  box-shadow: none;
+}
+
+/* focus-visible の青枠を無効化（キーボード操作時も同様） */
+.btn.btn-ghost:focus-visible {
+  outline: none;
+  border-color: #cbd5e1;
+  box-shadow: none;
+}
+
+.topHeader__filterClear {
+  margin-left: auto;
+}
+
+.topHeader__alerts {
+  margin-top: var(--space-2);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  background: rgba(185, 28, 28, 0.06);
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.topHeader__alertItem {
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.topHeader__alertItem + .topHeader__alertItem {
+  margin-top: 4px;
+}
+
+/* TopItemTable 用 */
+
+/* =========================
+   テーブル内スクロール
+   ========================= */
+
+/* カード自体はそのまま。中だけスクロール */
+.topItemTable {
+  width: 100%;
+  max-width: 1280px;
+  margin: var(--space-1) auto 0;
+  display: flex;           /* 中のscrollを伸ばす */
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  overflow: hidden; /* 角丸を効かせる */
+
+  /* 列幅（固定） */
+  --col-status: 56px;  /* 未確定：狭く */
+  --col-date:   120px; /* 取引日：狭く */
+  --col-major:  120px; /* 大カテゴリ：狭く */
+  --col-minor:   90px; /* 小カテゴリ：狭く */
+  --col-amount: 170px; /* 当月支払金額：やや広め */
+
+  /* タイトル／メモに残り幅を配る */
+  --col-fixed-sum: calc(
+    var(--col-status) + var(--col-date) + var(--col-major) + var(--col-minor) + var(--col-amount)
+  );
+  --col-flex: calc(100% - var(--col-fixed-sum));
+
+  /* 配分比率（好みで調整） */
+  --title-ratio: 0.60;
+  --memo-ratio:  0.40;
+}
+
+/* ここがスクロール領域（本文のみ） */
+.topItemTable__scroll {
+  overflow-y: auto;     /* 縦スクロールは必ずここ */
+  overflow-x: auto;     /* 横は必要な場合のみ出る */
+  min-height: 0;
+  flex: 1 1 auto;
+  background: #ffffff;
+  scrollbar-gutter: stable;
+}
+
+/* テーブル本体 */
+.topItemTable__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+  table-layout: fixed; /* 追加 */
+}
+
+/* 本文側テーブル */
+.topItemTable__scroll .topItemTable__table {
+  width: 100%;
+  table-layout: fixed;  /* 見出し側と合わせる */
+}
+
+/* 強制更新メッセージ */
+.topItemTable__forceMessage {
+  max-width: 1100px;
+  margin: 16px auto 0;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  color: #6b7280;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* 見出しはスクロール領域の外（固定） */
+.topItemTable__head {
+  flex: 0 0 auto;
+  background: #f3f4f6;                 /* 見出し背景 */
+  border-bottom: 1px solid #e5e7eb;    /* 見出しと本文の境界線 */
+  padding-right: 16px;   /* 環境によって 14〜18px で微調整 */
+  box-sizing: border-box;
+}
+
+/* 見出し側テーブル */
+.topItemTable__head .topItemTable__table {
+  width: 100%;
+  table-layout: fixed;                 /* 列幅を固定して本文と揃えやすくする */
+}
+
+/* ヘッダー（theadのtdを見出し風に） */
+.topItemTable__thead .topItemTable__th {
+  text-align: center;
+  background: #f3f4f6;
+  font-weight: 700;
+  color: #111827;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+/* 本文セル */
+.topItemTable__tbody .topItemTable__td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+/* 本文の最初の行の上側が二重に見える場合の調整 */
+.topItemTable__tbody .topItemTable__tr:first-child .topItemTable__td {
+  border-top: none;
+}
+
+.topItemTable__tbody .topItemTable__tr:last-child .topItemTable__td {
+  border-bottom: none;
+}
+
+/* 行ホバー */
+.topItemTable__tbody .topItemTable__tr:hover .topItemTable__td {
+  background: #f9fafb;
+}
+
+/* 固定レイアウトでも中身が原因で列が膨らむのを抑える */
+.topItemTable__td {
+  min-width: 0;
+}
+
+/* 更新がある行（未確定）を薄く色付け */
+.topItemTable__tbody .topItemTable__tr.topItemTable__tr--dirty .topItemTable__td {
+  background: rgba(185, 28, 28, 0.06); /* 薄い赤 */
+}
+
+/* 更新行の hover */
+.topItemTable__tbody .topItemTable__tr.topItemTable__tr--dirty:hover .topItemTable__td {
+  background: rgba(185, 28, 28, 0.10);
+}
+
+/* 任意：更新行の入力欄も少し強調（見落とし防止） */
+.topItemTable__tbody .topItemTable__tr.topItemTable__tr--dirty .topItemTable__input,
+.topItemTable__tbody .topItemTable__tr.topItemTable__tr--dirty .topItemTable__select {
+  border-color: rgba(185, 28, 28, 0.35);
+}
+
+/* 列ごとの整列 */
+.topItemTable__colStatus {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.topItemTable__colDate {
+  white-space: nowrap;
+}
+
+/* ここ重要：td側の width は持たせない（colgroupで決める） */
+.topItemTable__colMajor,
+.topItemTable__colMinor,
+.topItemTable__colTitle,
+.topItemTable__colMemo {
+  width: auto;
+}
+
+/* 取引日：本文側も中央寄せにする（見出しと揃える） */
+.topItemTable__tbody .topItemTable__colDate {
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.topItemTable__colAmount {
+  min-width: 140px;  /* 好みで 150〜180px など */
+  text-align: right;
+  white-space: nowrap;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+/* 追加: 金額を太字（本文側の金額列） */
+.topItemTable__tbody .topItemTable__colAmount {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+/* colgroup の col に列幅を割り当てる（table-layout: fixed で効かせる） */
+.topItemTable__table col.topItemTable__colStatus { width: var(--col-status); }
+.topItemTable__table col.topItemTable__colDate   { width: var(--col-date); }
+.topItemTable__table col.topItemTable__colMajor  { width: var(--col-major); }
+.topItemTable__table col.topItemTable__colMinor  { width: var(--col-minor); }
+.topItemTable__table col.topItemTable__colAmount { width: var(--col-amount); }
+
+/* 残り幅をタイトル／メモへ */
+.topItemTable__table col.topItemTable__colTitle  { width: calc(var(--col-flex) * var(--title-ratio)); }
+.topItemTable__table col.topItemTable__colMemo   { width: calc(var(--col-flex) * var(--memo-ratio)); }
+
+
+/* 入力・セレクトの統一 */
+.topItemTable__input,
+.topItemTable__select {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+.topItemTable__input:focus,
+.topItemTable__select:focus {
+  outline: 3px solid rgba(37, 99, 235, 0.20);
+  border-color: rgba(37, 99, 235, 0.55);
+}
+
+/* 未確定の記号 */
+.topItemTable__statusMark {
+  font-size: 22px;
+  font-weight: 800;
+  color: #b91c1c;
+}
+
+.topItemTable__statusMuted {
+  color: #9ca3af;
+}
+
+/* =========================
+   モーダル共通（className前提）
+   ========================= */
+
+dialog.modal {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(80vh, 680px);
+  overflow: auto;
+  scrollbar-gutter: stable;
+
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 14px;
+  background: var(--surface, #ffffff);
+  color: #111827;
+
+  padding: 18px 18px 14px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 更新確認モーダルはコンパクトに */
+dialog.modal.updateModal {
+  width: min(440px, calc(100vw - 32px));
+  padding: 16px 16px 12px;
+}
+
+/* タイトルも少しだけ小さく */
+dialog.modal.updateModal .modal__title {
+  font-size: 16px;
+}
+
+/* 本文の行間を少し締める */
+dialog.modal.updateModal .modal__text {
+  line-height: 1.55;
+}
+
+/* 閉じているときは必ず非表示 */
+dialog.modal:not([open]) {
+  display: none;
+}
+
+/* 開いているときだけレイアウトを当てる */
+dialog.modal[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+dialog.modal::backdrop {
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+/* タイトル・本文 */
+dialog.modal .modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+dialog.modal .modal__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #374151;
+}
+
+dialog.modal .modal__fileName {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #111827;
+  font-weight: 700;
+}
+
+/* セクション（ボタンや補助要素を包む） */
+dialog.modal .modal__section {
+  margin-top: 2px;
+}
+
+/* エラー表示 */
+dialog.modal .modal__errorBox {
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  background: rgba(185, 28, 28, 0.06);
+  border-radius: 12px;
+  padding: 10px 10px;
+}
+
+dialog.modal .modal__errorTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: #991b1b;
+  margin-bottom: 6px;
+}
+
+dialog.modal .modal__errorList {
+  display: grid;
+  gap: 6px;
+}
+
+dialog.modal .modal__errorItem {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(185, 28, 28, 0.14);
+  color: #7f1d1d;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+dialog.modal .modal__apiError {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  background: rgba(185, 28, 28, 0.06);
+  color: #991b1b;
+  font-weight: 800;
+}
+
+/* アクション領域 */
+dialog.modal .modal__actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+dialog.modal .modal__actions--row {
+  justify-content: flex-end;
+}
+
+/* ボタン */
+dialog.modal .modal__btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: box-shadow 120ms ease, border-color 120ms ease, background 120ms ease,
+    transform 60ms ease;
+}
+
+dialog.modal .modal__btn:hover {
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+dialog.modal .modal__btn:active {
+  transform: translateY(1px);
+}
+
+dialog.modal .modal__btn:focus-visible {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+dialog.modal .modal__btn--primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+dialog.modal .modal__btn--primary:hover {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+dialog.modal .modal__btn--secondary {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #374151;
+}
+
+/* モバイル */
+@media (max-width: 480px) {
+  dialog.modal {
+    padding: 16px 14px 12px;
+    gap: 8px;
   }
-  to {
-    transform: rotate(360deg);
+
+  dialog.modal .modal__title {
+    font-size: 16px;
+  }
+
+  dialog.modal .modal__actions,
+  dialog.modal .modal__actions--row {
+    flex-direction: column;
+  }
+
+  dialog.modal .modal__btn {
+    width: 100%;
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* CsvImportButton */
+.csvImportButton {
+  display: flex;
+  align-items: center;
 }
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+.csvImportButton__btn {
+  width: 100%;
 }
