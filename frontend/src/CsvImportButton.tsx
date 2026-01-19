@@ -28,13 +28,18 @@ export function CsvImportButton(props: FileUploadButtonProps) {
   };
 
   return (
-    <div>
-      <button type="button" onClick={handleClick}>
+    <div className="csvImportButton">
+      <button
+        type="button"
+        className="csvImportButton__btn modal__btn modal__btn--primary"
+        onClick={handleClick}
+      >
         PCから選択
       </button>
 
       <input
         ref={fileInputRef}
+        className="csvImportButton__input"
         type="file"
         // csv のみに限定
         accept=".csv,text/csv"

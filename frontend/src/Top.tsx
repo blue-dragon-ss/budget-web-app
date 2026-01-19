@@ -476,7 +476,7 @@ function Top() {
   }
     
   return (
-    <>
+    <div className="topPage">
       {errorMessage201Or301Api !== "" ? (
         // APIエラー画面
         <ServerError errorMessage={errorMessage201Or301Api}/>
@@ -500,13 +500,15 @@ function Top() {
               onClickUnchange={handleUnchange}
               onClickOpenCsvImportModal={handleOpenCsvImportModal}/>
             {/* 明細一覧表 */}
-            <TopItemTable 
-              topItemViewModels={topItemViewModels} 
-              categoryList={categoryList} 
-              categoryFilterList={categoryFilterList}
-              updateList={updateList}
-              screenState={screenState}
-              onChangeItem={handleChange}/>
+            <div className="topPage__tableArea">
+              <TopItemTable 
+                topItemViewModels={topItemViewModels} 
+                categoryList={categoryList} 
+                categoryFilterList={categoryFilterList}
+                updateList={updateList}
+                screenState={screenState}
+                onChangeItem={handleChange}/>
+            </div>
             {/* 明細更新確認モーダル */}
             <TopUpdateModal
               open={isUpdateModalOpen}
@@ -524,7 +526,7 @@ function Top() {
               onFileSelected={handleFileSelected}/>
           </>
       )}
-    </>
+    </div>
   );
 }
 

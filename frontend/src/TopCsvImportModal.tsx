@@ -1,5 +1,4 @@
 import { useEffect, useRef} from "react";
-import "./TopCsvImportModal.css";
 import "./CsvImportButton";
 import { CsvImportButton } from "./CsvImportButton";
 import { type P203ItemsCsvImportResponse } from "./type/P203ItemsCsvImportResponse.ts";
@@ -81,54 +80,74 @@ export const TopCsvImportModal = ({
     
 
     return (
-        <dialog ref={TopCsvImportModalRef} closedby="none">
-            <h3>CSV読込</h3>
+        <dialog ref={TopCsvImportModalRef} closedby="none" className="modal csvImportModal">
+            <h3 className="modal__title">CSV読込</h3>
             {isPrevLoading && (
                 <>
-                    <p>CSVファイルをアップロードしてください</p>
-                    <CsvImportButton 
-                        onFileSelected={onFileSelected} />
-                    <button id="importCancel" onClick={handleCancelClick}>キャンセル</button>
+                    <p className="modal__text">CSVファイルをアップロードしてください</p>
+                    <div className="modal__section">
+                        <CsvImportButton 
+                            onFileSelected={onFileSelected} />
+                    </div>
+                    <div className="modal__actions">
+                        <button id="importCancel" className="modal__btn modal__btn--secondary" onClick={handleCancelClick}>キャンセル</button>
+                    </div>
                 </>
             )}
-            {selectedFile && (<p>{selectedFile.name}</p>)}
+            {selectedFile && (<p className="modal__text modal__fileName">{selectedFile.name}</p>)}
             {csvLoading && (
                 <>
-                    <p>CSVファイルを読み込み中です</p>
+                    <p className="modal__text">CSVファイルを読み込み中です</p>
                 </>
             )}
             {isAfterLoading && (
                 <>
                     {!isError ? (
                         <>
-                            <p>全 {csvImportResult.total} 件 読み込み完了しました</p>
+                            <p className="modal__text">全 {csvImportResult.total} 件 読み込み完了しました</p>
                         </>
                     ) : (
                         <>
-                            <p>
+                            <p  className="modal__text">
                                 {csvImportResult.total} 件中 {csvImportResult.failed} 件にエラーがあるため、取り込みを中止しました<br/>
                                 お手数ですが、CSVを修正してから再度取り込んでください
                             </p>
-                            <p>
-                                エラー一覧
-                                {errorList.map((e) => (
-                                    <span key={e.line}>
-                                        <br/>
-                                        {e.line} 行目：{e.message}
-                                    </span>
-                                ))}
-                            </p>
+                            <div  className="modal__errorBox">
+                                <div className="modal__errorTitle">エラー一覧</div>
+                                <div className="modal__errorList">
+                                    {errorList.map((e) => (
+                                        <div className="modal__errorItem" key={e.line}>
+                                            {e.line} 行目：{e.message}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </>
                     )}
 
-                    <button id="importOk" onClick={handleOkClick}>OK</button>
-                </>
-                )
-            }
+                    <div className="modal__actions">
+                        <button
+                            id="importOk"
+                            className="modal__btn modal__btn--primary"
+                            onClick={handleOkClick}
+                        >
+                            OK
+                        </button>
+                    </div>
+                </>   
+            )}
             {isApiError && (
                 <>
-                    <p>{errorMessage203Api}</p>
-                    <button id="importOk" onClick={handleOkClick}>OK</button>
+                    <p className="modal__text modal__apiError">{errorMessage203Api}</p>
+                    <div className="modal__actions">
+                        <button
+                            id="importOk"
+                            className="modal__btn modal__btn--primary"
+                            onClick={handleOkClick}
+                        >
+                            OK
+                        </button>
+                    </div>
                 </>
             )}
         </dialog>
