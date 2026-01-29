@@ -39,6 +39,7 @@ postgres-data/
 ### Java artifacts (個別生成物)
 *.class
 *.jar
+!backend/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 
