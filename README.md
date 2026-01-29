@@ -10,8 +10,6 @@
 
 　毎月の家計簿入力を簡易化し、好みのカテゴリを付与できるように、楽天カード明細（CSV）を自動で取り込み、可視化するアプリを開発しました。
 
----
-
 ## 背景
 
 - 以前使用していた家計簿アプリがサブスクなしだとほとんど使い物にならない状態になっていた
@@ -19,8 +17,6 @@
 - システム開発から年単位で離れていたため、手順・技術を確認したい
 - フロントエンドに触れたことがなかったので、簡単なシステムでフレームワーク（React）を使用してみたい
 - 生成AIが発展したため、学習・設計・実装・レビュー・テストなどで使ってみたい
-
----
 
 ## 使用技術
 
@@ -54,11 +50,9 @@
 - DB は PostgreSQL 16 を docker-compose で起動できる構成
 - DB スキーマは Flyway のマイグレーションで管理
 
----
+## 実装機能
 
-### 実装機能
-
-#### API
+### API
 
 - 明細一覧取得（GET /api/v1/items）
 - 明細更新（POST /api/v1/items/update）
@@ -66,7 +60,7 @@
 - 明細カテゴリ取得（GET /api/v1/categories）
 - メンバー作成（POST /api/v1/members/create）
 
-#### 画面
+### 画面
 
 **明細一覧の表示**
 
@@ -75,29 +69,27 @@
       <a href="docs/image/Title.png">
         <img src="docs/image/Title.png" alt="説明" width="300" />
       </a>
-    </p></br>
+    </p>
 
 2. **カテゴリフィルタ / フィルタ全解除ボタン**
     <p>
       <a href="docs/image/Filter.png">
         <img src="docs/image/Filter.png" alt="説明" width="1200" />
       </a>
-    </p></br>
+    </p>
 
 3. **インライン編集（タイトル・カテゴリ・メモ） / 未確定変更の可視化**
     <p>
       <a href="docs/image/BillingTable.png">
         <img src="docs/image/BillingTable.png" alt="説明" width="1200" />
       </a>
-    </p></br>
+    </p>
 
 4. **CSV取込ボタン / 更新確定ボタン / 変更リセットボタン**
     | 初期 | 更新確定前 | 編集エラーがある場合 |
     | :---: | :---: | :---: |
     | <a href="docs/image/Button.png"><img src="docs/image/Button.png" alt="説明" width="200" /></a> | <a href="docs/image/ButtonUpdatePre.png"><img src="docs/image/ButtonUpdatePre.png" alt="説明" width="200" /></a> | <a href="docs/image/ButtonUpdateError.png"><img src="docs/image/ButtonUpdateError.png" alt="説明" width="200" /></a> |
     | CSV読込：活性</br>更新確定：非活性</br>変更リセット：非活性 | CSV読込：非活性</br>更新確定：活性</br>変更リセット：活性 | CSV読込：非活性</br>更新確定：非活性</br>変更リセット：活性 |
-    
-    </br>
 
 5. **編集エラー表示**
     <p>
@@ -112,35 +104,33 @@
     3. 明細タイトルが50文字以上のとき
     4. メモが100文字以上のとき
 
-    </br>
-
 6. **明細更新モーダル**
     <p>
       <a href="docs/image/UpdateModal.png">
         <img src="docs/image/UpdateModal.png" alt="説明" width="600" />
       </a>
-    </p></br>
+    </p>
 
     **更新結果の通知（右上トースト）**
     <p>
       <a href="docs/image/Toast.png">
         <img src="docs/image/Toast.png" alt="説明" width="300" />
       </a>
-    </p></br>
+    </p>
 
 7. **CSV 取込mモーダル**
     <p>
       <a href="docs/image/CSVModal.png">
         <img src="docs/image/CSVModal.png" alt="説明" width="600" />
       </a>
-    </p></br>
+    </p>
 
     **読込結果の表示（成功）**
     <p>
       <a href="docs/image/CSVModalSuccess.png">
         <img src="docs/image/CSVModalSuccess.png" alt="説明" width="600" />
       </a>
-    </p></br>
+    </p>
 
     **読込結果の表示（エラー）**
     <p>
@@ -149,9 +139,7 @@
       </a>
     </p>
 
----
-
-### 工夫している点
+## 工夫している点
 
 - **システム開発手順の確認と最新技術の活用**
   - 要件定義書～詳細設計書を作成し開発方針を事前に決定
@@ -172,9 +160,7 @@
     - ボタンが機能が必要のない時、もしくは押されてほしくない時は非活性で防御
   - 未確定の更新をリセットするボタンの実装
 
----
-
-### 今後の展望
+## 今後の展望
 
 - **テスト実施**
   - 省略した単体テスト・サーバ結合テストの実装。
@@ -192,8 +178,6 @@
   - 明細データを全て見られる画面を追加。明細削除機能込み。
 - **会員登録画面の追加**
   - IDとパスワードを入力して登録できる画面の追加。
-
----
 
 ## ローカル起動手順
 
