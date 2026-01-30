@@ -14,7 +14,6 @@
 
 - 以前使用していた家計簿アプリがサブスクなしだとほとんど使い物にならない状態になっていた
 - 明細に付与するカテゴリをもっと自分仕様にしたい
-- システム開発から年単位で離れていたため、手順・技術を確認したい
 - フロントエンドに触れたことがなかったので、簡単なシステムでフレームワーク（React）を使用してみたい
 - 生成AIが発展したため、学習・設計・実装・レビュー・テストなどで使ってみたい
 
@@ -64,39 +63,29 @@
 
 **明細一覧の表示**
 
-1. **年月 / 年月の前後移動 / 明細件数 / 合計金額**
-    <p>
-      <a href="docs/image/Title.png">
-        <img src="docs/image/Title.png" alt="説明" width="300" />
-      </a>
-    </p>
+| 1. **年月 / 年月の前後移動 / 明細件数 / 合計金額** |
+| :--- |
+| <a href="docs/image/Title.png"><img src="docs/image/Title.png" alt="説明" width="300" /></a> |
 
-2. **カテゴリフィルタ / フィルタ全解除ボタン**
-    <p>
-      <a href="docs/image/Filter.png">
-        <img src="docs/image/Filter.png" alt="説明" width="1200" />
-      </a>
-    </p>
 
-3. **インライン編集（タイトル・カテゴリ・メモ） / 未確定変更の可視化**
-    <p>
-      <a href="docs/image/BillingTable.png">
-        <img src="docs/image/BillingTable.png" alt="説明" width="1200" />
-      </a>
-    </p>
+| 2. **カテゴリフィルタ / フィルタ全解除ボタン** |
+| :--- |
+| <a href="docs/image/Filter.png"><img src="docs/image/Filter.png" alt="説明" width="1200" /></a> |
+
+| 3. **インライン編集（タイトル・カテゴリ・メモ） / 未確定変更の可視化** |
+| :--- |
+| <a href="docs/image/BillingTable.png"><img src="docs/image/BillingTable.png" alt="説明" width="1200" /></a> |
 
 4. **CSV取込ボタン / 更新確定ボタン / 変更リセットボタン**
-    | 初期 | 更新確定前 | 編集エラーがある場合 |
-    | :---: | :---: | :---: |
-    | <a href="docs/image/Button.png"><img src="docs/image/Button.png" alt="説明" width="200" /></a> | <a href="docs/image/ButtonUpdatePre.png"><img src="docs/image/ButtonUpdatePre.png" alt="説明" width="200" /></a> | <a href="docs/image/ButtonUpdateError.png"><img src="docs/image/ButtonUpdateError.png" alt="説明" width="200" /></a> |
-    | CSV読込：活性</br>更新確定：非活性</br>変更リセット：非活性 | CSV読込：非活性</br>更新確定：活性</br>変更リセット：活性 | CSV読込：非活性</br>更新確定：非活性</br>変更リセット：活性 |
 
-5. **編集エラー表示**
-    <p>
-      <a href="docs/image/UpdateError.png">
-        <img src="docs/image/UpdateError.png" alt="説明" width="1200" />
-      </a>
-    </p>
+| 初期 | 更新確定前 | 編集エラーがある場合 |
+| :---: | :---: | :---: |
+| <a href="docs/image/Button.png"><img src="docs/image/Button.png" alt="説明" width="200" /></a> | <a href="docs/image/ButtonUpdatePre.png"><img src="docs/image/ButtonUpdatePre.png" alt="説明" width="200" /></a> | <a href="docs/image/ButtonUpdateError.png"><img src="docs/image/ButtonUpdateError.png" alt="説明" width="200" /></a> |
+| CSV読込：活性</br>更新確定：非活性</br>変更リセット：非活性 | CSV読込：非活性</br>更新確定：活性</br>変更リセット：活性 | CSV読込：非活性</br>更新確定：非活性</br>変更リセット：活性 |
+
+| 5. **編集エラー表示** |
+| :--- |
+| <a href="docs/image/UpdateError.png"><img src="docs/image/UpdateError.png" alt="説明" width="1200" /></a> |
 
     エラー内容
     1. 更新未確定のとき
@@ -104,40 +93,19 @@
     3. 明細タイトルが50文字以上のとき
     4. メモが100文字以上のとき
 
-6. **明細更新モーダル**
-    <p>
-      <a href="docs/image/UpdateModal.png">
-        <img src="docs/image/UpdateModal.png" alt="説明" width="600" />
-      </a>
-    </p>
+| 6. **明細更新モーダル** |
+| :--- |
+| <a href="docs/image/UpdateModal.png"><img src="docs/image/UpdateModal.png" alt="説明" width="600" /></a> |
+| **更新結果の通知（右上トースト）** |
+| <a href="docs/image/Toast.png"><img src="docs/image/Toast.png" alt="説明" width="300" /></a> |
 
-    **更新結果の通知（右上トースト）**
-    <p>
-      <a href="docs/image/Toast.png">
-        <img src="docs/image/Toast.png" alt="説明" width="300" />
-      </a>
-    </p>
-
-7. **CSV 取込mモーダル**
-    <p>
-      <a href="docs/image/CSVModal.png">
-        <img src="docs/image/CSVModal.png" alt="説明" width="600" />
-      </a>
-    </p>
-
-    **読込結果の表示（成功）**
-    <p>
-      <a href="docs/image/CSVModalSuccess.png">
-        <img src="docs/image/CSVModalSuccess.png" alt="説明" width="600" />
-      </a>
-    </p>
-
-    **読込結果の表示（エラー）**
-    <p>
-      <a href="docs/image/CSVModalError.png">
-        <img src="docs/image/CSVModalError.png" alt="説明" width="600" />
-      </a>
-    </p>
+| 7. **CSV 取込モーダル** |
+| :--- |
+| <a href="docs/image/CSVModal.png"><img src="docs/image/CSVModal.png" alt="説明" width="600" /></a> |
+| **読込結果の表示（成功）** |
+| <a href="docs/image/CSVModalSuccess.png"><img src="docs/image/CSVModalSuccess.png" alt="説明" width="600" /></a> |
+| **読込結果の表示（エラー）** |
+| <a href="docs/image/CSVModalError.png"><img src="docs/image/CSVModalError.png" alt="説明" width="600" /></a> |
 
 ## 工夫している点
 
@@ -162,8 +130,6 @@
 
 ## 今後の展望
 
-- **テスト実施**
-  - 省略した単体テスト・サーバ結合テストの実装。
 - **認証・ユーザー単位データ分離**
   - 現状は固定会員 ID の運用のため、認証導入と連動したデータ分離が必要。
 - **カテゴリ階層の拡張**
