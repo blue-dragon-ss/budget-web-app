@@ -97,7 +97,7 @@ export async function importItemsfromCsv(request: P203ItemsCsvImportRequest) {
   if(USE_MOCK_CSV_IMPORT_API) {
     return mockCsvImportResponse(request.yearMonth);
   } else if (ERROR_MOCK_CSV_IMPORT_API) {
-      throw new Error("読込に失敗しました。時間を空けてもう一度試してください");
+      throw new Error("読込に失敗しました。複数回エラーが出る場合は担当者に問い合わせてください");
   }
 
   const form = new FormData();
@@ -113,7 +113,7 @@ export async function importItemsfromCsv(request: P203ItemsCsvImportRequest) {
   });
 
   if (!res.ok) {
-    throw new Error("読込に失敗しました。時間を空けてもう一度試してください");
+    throw new Error("読込に失敗しました。複数回エラーが出る場合は担当者に問い合わせてください");
   }
   const json = (await res.json()) as P203ItemsCsvImportResponse;
   return json;
