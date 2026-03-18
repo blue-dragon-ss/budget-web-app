@@ -44,7 +44,7 @@ public class CsvReader {
 		public static final String PAYER = "利用者";
 		public static final String PAYMENT_METHOD = "支払方法";
 		public static final String USAGE_AMOUNT = "利用金額";
-		public static final String FEE_AMOUNT = "支払手数料";
+		public static final String FEE_AMOUNT = "手数料/利息";
 		public static final String TOTAL_AMOUNT = "支払総額";
 		public static final String IS_NEW_ITEMS = "新規サイン";
 
